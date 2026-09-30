@@ -144,10 +144,12 @@ export default function HomeScreen({ navigation }) {
 
         {/* Banner */}
         <View style={styles.bannerContainer}>
+        <TouchableOpacity onPress={() => navigation.navigate('VehicleTexScreen')}>
           <Image
             source={require('./assets/banner.jpg')}
             style={styles.banner}
           />
+        </TouchableOpacity>
         </View>
 
         {/* Services */}
@@ -183,16 +185,13 @@ const styles = StyleSheet.create({
     bannerContainer: {
       marginHorizontal: 12,
       marginTop: 12,
-      borderRadius: 15,
       overflow: 'hidden',
-      backgroundColor: '#fff',
       elevation: 3,
     },
 
     banner: {
-      width: '100%',
-      height: 180,
-      resizeMode: 'cover',
+      width:'100%',
+      height: 220,
     },
 
   container: {
@@ -258,8 +257,8 @@ const styles = StyleSheet.create({
   },
 
   icon: {
-    width: 55,
-    height: 55,
+    width: 65,
+    height: 65,
     resizeMode: 'contain',
     marginBottom: 1,
   },
@@ -271,6 +270,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 16,
   },
+
+
 
   disclaimerContainer: {
     backgroundColor: '#FFF3CD',

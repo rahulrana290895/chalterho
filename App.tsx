@@ -109,7 +109,7 @@ export default function App() {
               component={ServiceDetailScreen}
                 options={{
                   headerTitle: 'Service Detail',
-                  headerStyle: { backgroundColor: 'orangered' },
+                  headerStyle: { backgroundColor: '#001433' },
                   headerTintColor: '#fff',
                 }}
             />
@@ -119,7 +119,7 @@ export default function App() {
               component={VehicleTexScreen}
                 options={{
                   headerTitle: 'Vehicle Detail',
-                  headerStyle: { backgroundColor: 'orangered' },
+                  headerStyle: { backgroundColor: '#001433' },
                   headerTintColor: '#fff',
                 }}
             />
@@ -157,7 +157,7 @@ export default function App() {
               component={TaxHistoryScreen}
                 options={{
                   headerTitle: 'Tax History',
-                  headerStyle: { backgroundColor: 'orangered' },
+                  headerStyle: { backgroundColor: '#001433' },
                   headerTintColor: '#fff',
                 }}
             />
@@ -167,7 +167,7 @@ export default function App() {
               component={HelplineScreen}
                 options={{
                   headerTitle: 'Helpline',
-                  headerStyle: { backgroundColor: 'orangered' },
+                  headerStyle: { backgroundColor: '#001433' },
                   headerTintColor: '#fff',
                 }}
             />
@@ -177,7 +177,7 @@ export default function App() {
               component={MoreScreen}
                 options={{
                   headerTitle: 'More',
-                  headerStyle: { backgroundColor: 'orangered' },
+                  headerStyle: { backgroundColor: '#001433' },
                   headerTintColor: '#fff',
                 }}
             />
@@ -187,7 +187,7 @@ export default function App() {
               component={AboutUsScreen}
                 options={{
                   headerTitle: 'About Us',
-                  headerStyle: { backgroundColor: 'orangered' },
+                  headerStyle: { backgroundColor: '#001433' },
                   headerTintColor: '#fff',
                 }}
             />
@@ -197,7 +197,7 @@ export default function App() {
               component={ReferEarnScreen}
                 options={{
                   headerTitle: 'Refer & Earn',
-                  headerStyle: { backgroundColor: 'orangered' },
+                  headerStyle: { backgroundColor: '#001433' },
                   headerTintColor: '#fff',
                 }}
             />

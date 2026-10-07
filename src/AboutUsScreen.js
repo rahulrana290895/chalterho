@@ -79,6 +79,12 @@ export default function AboutUsScreen() {
           <Text style={styles.point}>✔ One-Stop Transport Solution</Text>
         </View>
 
+        <View style={styles.disclaimerContainer}>
+          <Text style={styles.disclaimerText}>
+            This App is not affiliated with any government authority.
+          </Text>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -144,4 +150,19 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
+    disclaimerContainer: {
+      backgroundColor: '#FFF3CD',
+      paddingVertical: 8,
+      paddingHorizontal: 15,
+      borderTopWidth: 1,
+      borderTopColor: '#FFE69C',
+    },
+
+    disclaimerText: {
+      fontSize: 12,
+      textAlign: 'center',
+      color: '#856404',
+      fontWeight: '500',
+    },
+
 });

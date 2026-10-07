@@ -9,23 +9,61 @@ import {
   ActivityIndicator,
   StatusBar,
   ScrollView,
+  NativeModules,
 } from 'react-native';
-
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SpInAppUpdates, {IAUUpdateKind, } from 'sp-react-native-in-app-updates';
 
 import { BASE_URL, ASSETS_URL } from './config/config';
+const { ReviewModule } = NativeModules;
 
 export default function HomeScreen({ navigation }) {
   const [services, setServices] = useState([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     getServices();
     getBalance();
+    getNotice();
+    checkForAppUpdate();
+     requestAppReview();
   }, []);
+
+  const checkForAppUpdate = async () => {
+    try {
+      const inAppUpdates = new SpInAppUpdates(false);
+
+      const result = await inAppUpdates.checkNeedsUpdate();
+
+      console.log('Update Check:', result);
+
+      if (result.shouldUpdate) {
+        await inAppUpdates.startUpdate({
+          updateType: IAUUpdateKind.IMMEDIATE,
+        });
+      }
+    } catch (error) {
+      console.log('App Update Error:', error);
+    }
+  };
+  const requestAppReview = async () => {
+    try {
+      if (!ReviewModule) {
+        console.log('ReviewModule not available');
+        return;
+      }
+
+      await ReviewModule.requestReview();
+
+      console.log('Review request completed');
+    } catch (error) {
+      console.log('Review Error:', error);
+    }
+  };
   const getBalance = async () => {
     try {
       const uid = await AsyncStorage.getItem('userId');
@@ -62,7 +100,18 @@ export default function HomeScreen({ navigation }) {
       setLoading(false);
     }
   };
+  const getNotice = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}get-notice.php`);
+        const result = await response.json();
 
+        if (result.status) {
+          setNotice(result.notice);
+        }
+      } catch (error) {
+        console.log('Notice Error:', error);
+      }
+    };
   const renderService = ({ item }) => (
     <TouchableOpacity
       style={styles.serviceItem}
@@ -143,6 +192,28 @@ export default function HomeScreen({ navigation }) {
 </View>
 
         {/* Banner */}
+
+{/* Notice */}
+{notice !== '' && (
+  <View style={styles.noticeContainer}>
+    <Ionicons
+      name="information-circle"
+      size={20}
+      color="#fff"
+      style={{ marginRight: 8 }}
+    />
+
+    <Text style={styles.noticeText}>
+      {notice}
+    </Text>
+  </View>
+)}
+
+{/* Banner */}
+
+
+
+
         <View style={styles.bannerContainer}>
         <TouchableOpacity onPress={() => navigation.navigate('VehicleTexScreen')}>
           <Image
@@ -170,17 +241,12 @@ export default function HomeScreen({ navigation }) {
           />
         </View>
 
-        <View style={styles.disclaimerContainer}>
-          <Text style={styles.disclaimerText}>
-            This App is not affiliated with any government authority.
-          </Text>
-        </View>
+
         </ScrollView>
       </SafeAreaView>
     </>
   );
 }
-
 const styles = StyleSheet.create({
     bannerContainer: {
       marginHorizontal: 12,
@@ -273,20 +339,6 @@ const styles = StyleSheet.create({
 
 
 
-  disclaimerContainer: {
-    backgroundColor: '#FFF3CD',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#FFE69C',
-  },
-
-  disclaimerText: {
-    fontSize: 12,
-    textAlign: 'center',
-    color: '#856404',
-    fontWeight: '500',
-  },
 rightSection: {
   flexDirection: 'row',
   alignItems: 'center',
@@ -301,6 +353,26 @@ balanceText: {
   fontSize: 14,
   fontWeight: '700',
   marginRight: 10,
+},
+noticeContainer: {
+  marginHorizontal: 12,
+  marginTop: 10,
+  backgroundColor: '#dc3545',
+  borderRadius: 10,
+  paddingVertical: 10,
+  paddingHorizontal: 12,
+  flexDirection: 'row',
+  alignItems: 'center',
+  borderWidth: 1,
+  borderColor: 'red',
+  elevation: 2,
+},
+
+noticeText: {
+  flex: 1,
+  fontSize: 13,
+  color: '#fff',
+  fontWeight: '600',
 },
 
 });

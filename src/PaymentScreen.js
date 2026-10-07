@@ -5,530 +5,790 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 
-import {Picker} from '@react-native-picker/picker';
-import Clipboard from '@react-native-clipboard/clipboard';
-import Ionicons from '@react-native-vector-icons/ionicons';
-import {launchImageLibrary} from 'react-native-image-picker';
-import RNFS from 'react-native-fs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import RazorpayCheckout from 'react-native-razorpay';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
+import {BASE_URL} from './config/config';
 
-import {BASE_URL, ASSETS_URL} from './config/config';
-
-export default function PaymentScreen({route,navigation,}) {
-  const vehicleData = route.params;
+export default function PaymentScreen({route, navigation}) {
+  const vehicleData = route.params || {};
 
   const [taxData, setTaxData] = useState(null);
-  const [upi, setUpi] = useState([]);
-  const [bank, setBank] = useState([]);
-  const [qr, setQr] = useState([]);
-  const [paymentMode, setPaymentMode] = useState('');
-  const [image, setImage] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     getTax();
-    getUpi();
-    getBank();
-    getQr();
     getWalletBalance();
   }, []);
 
-    const getWalletBalance = async () => {
-      try {
+  // =========================================================
+  // GET WALLET BALANCE
+  // =========================================================
+
+  const getWalletBalance = async () => {
+    try {
       const userId = await AsyncStorage.getItem('userId');
 
-        const formData = new FormData();
-        formData.append('uid', userId);
-
-        const response = await fetch(
-          `${BASE_URL}wallet-balance.php`,
-          {
-            method: 'POST',
-            body: formData,
-          },
-        );
-
-        const result = await response.json();
-
-        if (result.status) {
-          setWalletBalance(
-            Number(result.balance),
-          );
-        }
-
-      } catch (e) {
-        console.log(e);
+      if (!userId) {
+        console.log('User ID not found');
+        return;
       }
-    };
-    const payableAmount = taxData
-          ? walletBalance > 50
-            ? Math.max(
-                Number(taxData.total) -
-                  walletBalance,
-                0,
-              )
-            : Number(taxData.total)
-          : 0;
 
-  const getTax = async () => {
-    try {
       const formData = new FormData();
 
-      formData.append('state', vehicleData.state);
-      formData.append('category', vehicleData.category);
-      formData.append('sub_category',vehicleData.sub_category);
-      formData.append('duration',vehicleData.duration);
-    formData.append(
-      'no_of_seats',
-      vehicleData.no_of_seats || '',
-    );
-
-    formData.append(
-      'ac_type',
-      vehicleData.ac_type || '',
-    );
+      formData.append('uid', userId);
 
       const response = await fetch(
-        `${BASE_URL}calculate-tax.php`,
+        `${BASE_URL}wallet-balance.php`,
         {
           method: 'POST',
           body: formData,
         },
       );
 
-      const data = await response.json();
+      const result = await response.json();
 
-      setTaxData(data);
+      console.log('WALLET RESPONSE:', result);
+
+      if (result.status) {
+        setWalletBalance(Number(result.balance) || 0);
+      } else {
+        setWalletBalance(0);
+      }
     } catch (e) {
-      console.log(e);
+      console.log('WALLET ERROR:', e);
+      setWalletBalance(0);
     }
   };
 
-  const getUpi = async () => {
-    try {
-      const response = await fetch(
-        `${BASE_URL}upi.php`,
-      );
+  // =========================================================
+  // CALCULATE PAYABLE AMOUNT
+  // =========================================================
 
-      const data = await response.json();
+  const payableAmount = taxData
+    ? walletBalance > 50
+      ? Math.max(
+          Number(taxData.total) - walletBalance,
+          0,
+        )
+      : Number(taxData.total)
+    : 0;
 
-      setUpi(data.data || []);
-    } catch (e) {
-      console.log(e);
-    }
-  };
+  // =========================================================
+  // GET TAX
+  // =========================================================
 
-  const getBank = async () => {
-    try {
-      const response = await fetch(
-        `${BASE_URL}bank_details.php`,
-      );
+const getTax = async () => {
+  try {
+    const formData = new FormData();
 
-      const data = await response.json();
+    formData.append('state', vehicleData.state || '');
+    formData.append('category', vehicleData.category || '');
+    formData.append('sub_category', vehicleData.sub_category || '');
+    formData.append('duration', vehicleData.duration || '');
+    formData.append('no_of_seats', vehicleData.no_of_seats || '');
+    formData.append('ac_type', vehicleData.ac_type || '');
+    formData.append(
+      'vehicleNumber',
+      vehicleData.vehicle_number || '',
+    );
 
-      setBank(data.data || []);
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
-  const getQr = async () => {
-    try {
-      const response = await fetch(
-        `${BASE_URL}qr_code.php`,
-      );
-
-      const data = await response.json();
-
-      setQr(data.data || []);
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
-  const copyText = text => {
-    Clipboard.setString(text);
-    Alert.alert('Copied Successfully');
-  };
-
-  const pickImage = () => {
-    launchImageLibrary(
+    const response = await fetch(
+      `${BASE_URL}calculate-tax.php`,
       {
-        mediaType: 'photo',
-      },
-      response => {
-        if (response.assets) {
-          setImage(response.assets[0]);
-        }
+        method: 'POST',
+        body: formData,
       },
     );
-  };
 
-  const downloadQr = async imageUrl => {
-    try {
-      const path =
-        RNFS.DownloadDirectoryPath +
-        '/chalterho_qr.jpg';
+    const data = await response.json();
 
-      await RNFS.downloadFile({
-        fromUrl: imageUrl,
-        toFile: path,
-      }).promise;
+    console.log('TAX RESPONSE:', data);
 
-      Alert.alert(
-        'Success',
-        'QR Code Downloaded',
-      );
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
-  const submitPayment = async () => {
-   const userId = await AsyncStorage.getItem('userId');
-    try {
-      if (!paymentMode) {
-        Alert.alert(
-          'Please select payment mode',
-        );
-        return;
-      }
-
-      if (!image) {
-        Alert.alert(
-          'Upload transaction screenshot',
-        );
-        return;
-      }
-      const data = new FormData();
-      Object.keys(vehicleData).forEach(key => {
-        data.append(
-          key,
-          vehicleData[key],
-        );
+    // TAX NOT AVAILABLE
+    if (
+      !data ||
+      data.status === false ||
+      data.status === 'false' ||
+      data.status === 0 ||
+      data.status === '0' ||
+      data.amount === null ||
+      data.amount === undefined
+    ) {
+      setTaxData({
+        taxAvailable: false,
       });
+      return;
+    }
 
-      data.append(
-        'payment_mode',
-        paymentMode,
-      );
+    // TAX AVAILABLE
+    setTaxData({
+      ...data,
+      taxAvailable: true,
+    });
 
-      data.append(
+  } catch (e) {
+    console.log('TAX ERROR:', e);
+
+    setTaxData({
+      taxAvailable: false,
+    });
+  }
+};
+
+
+
+  // =========================================================
+  // CREATE RAZORPAY ORDER
+  // =========================================================
+
+  const createRazorpayOrder = async () => {
+    try {
+      if (loading) {
+        return;
+      }
+
+      const userId =
+        await AsyncStorage.getItem('userId');
+
+      if (!userId) {
+        Alert.alert(
+          'Error',
+          'User not found. Please login again.',
+        );
+        return;
+      }
+
+      if (!payableAmount || payableAmount <= 0) {
+        Alert.alert(
+          'Error',
+          'Invalid payable amount.',
+        );
+        return;
+      }
+
+      setLoading(true);
+
+      const formData = new FormData();
+
+      formData.append(
         'amount',
-        taxData.amount,
+        payableAmount.toString(),
       );
 
-      data.append(
-        'service_fees',
-        taxData.service_fees,
-      );
-
-      data.append(
+      formData.append(
         'uid',
         userId,
       );
 
-      data.append(
-        'payable',
+      console.log(
+        'CREATING RAZORPAY ORDER:',
         payableAmount,
       );
 
-      data.append('t_id', {
-        uri: image.uri,
-        type: image.type,
-        name:
-          image.fileName ||
-          'payment.jpg',
-      });
-
-      console.log(data);
-
-
       const response = await fetch(
-        `${BASE_URL}save-payment.php`,
+        `${BASE_URL}create-order.php`,
         {
           method: 'POST',
-          body: data,
+          body: formData,
         },
       );
 
       const result = await response.json();
-      if (result.status==true) {
 
-          navigation.replace(
-            'PaymentProcessingScreen',
-            {
-              paymentId: result.payment_id,
-            },
-          );
+      console.log(
+        'CREATE ORDER RESPONSE:',
+        result,
+      );
 
-
-      } else {
+      if (!result.status) {
+        setLoading(false);
 
         Alert.alert(
-          'Error',
-          result.message,
+          'Payment Error',
+          result.message ||
+            'Unable to create payment order.',
         );
 
+        return;
       }
 
-    } catch (e) {
+      /*
+       * result.amount_paise comes from create-order.php
+       *
+       * Example:
+       *
+       * ₹100
+       * =
+       * 10000 paise
+       */
+
+      openRazorpayCheckout(
+        result.order_id,
+        result.amount_paise,
+      );
+    } catch (error) {
+      console.log(
+        'CREATE ORDER ERROR:',
+        error,
+      );
+
+      setLoading(false);
+
       Alert.alert(
         'Error',
-        'Something went wrong',
+        'Unable to create payment order.',
       );
     }
   };
 
-  return (
-  <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-    <ScrollView style={styles.container}>
-      <Text style={styles.heading}>
-        Payment Details
-      </Text>
+  // =========================================================
+  // OPEN RAZORPAY CHECKOUT
+  // =========================================================
 
-{taxData && (
-  <View style={styles.card}>
-    <Text style={styles.price}>
-      Tax : ₹{taxData.amount}
-    </Text>
+  const openRazorpayCheckout = (
+    orderId,
+    amountInPaise,
+  ) => {
+    try {
+      const options = {
+        description:
+          'ChalteRho Vehicle Tax Payment',
 
-    <Text style={styles.price}>
-      Service Fees :
-      ₹{taxData.service_fees}
-    </Text>
+        currency: 'INR',
 
-    <Text style={styles.price}>
-      Sub Total :
-      ₹{taxData.total}
-    </Text>
+        /*
+         * IMPORTANT:
+         * Put ONLY your Razorpay KEY ID here.
+         *
+         * Example:
+         *
+         * key: 'rzp_live_xxxxxxxxxxxx',
+         *
+         * NEVER put Key Secret here.
+         */
 
-    {walletBalance > 50 && (
-      <Text style={styles.price}>
-        Wallet Balance :
-        ₹{walletBalance}
-      </Text>
-    )}
+        key: 'rzp_live_Ti9VSv6hnwIfKs',
 
-    <Text style={styles.total}>
-      Payable :
-      ₹{payableAmount}
-    </Text>
-  </View>
-)}
+        amount: Number(amountInPaise),
 
-      <View style={styles.card}>
-        <Text style={styles.title}>
-          QR Code
-        </Text>
+        name: 'ChalteRho',
 
-        {qr.map(item => {
-          const imageUrl =
-            `${ASSETS_URL}qrcode/${item.name}`;
+        order_id: orderId,
 
-          return (
-            <View key={item.id}>
-              <Image
-                source={{
-                  uri: imageUrl,
-                }}
-                style={styles.qr}
-              />
+prefill: {
+  name: vehicleData.name || 'ChalteRho User',
+  email: vehicleData.email || 'test@example.com',
+  contact: vehicleData.phone_number || '',
+},
 
-              <TouchableOpacity
-                onPress={() =>
-                  downloadQr(imageUrl)
-                }>
-                <Ionicons
-                  name="download-outline"
-                  size={30}
-                  color="orangered"
-                  style={{
-                    alignSelf: 'center',
-                    marginTop: 10,
-                  }}
-                />
-              </TouchableOpacity>
-            </View>
+        theme: {
+          color: '#ff4500',
+        },
+      };
+
+      console.log(
+        'RAZORPAY OPTIONS:',
+        {
+          order_id: orderId,
+          amount: amountInPaise,
+        },
+      );
+
+       RazorpayCheckout.open(options)
+         .then(async data => {
+
+           console.log('RAZORPAY SUCCESS:', data);
+
+           try {
+
+             const userId =
+               await AsyncStorage.getItem('userId');
+
+             const formData = new URLSearchParams();
+
+             formData.append(
+               'razorpay_payment_id',
+               data.razorpay_payment_id
+             );
+
+             formData.append(
+               'razorpay_order_id',
+               data.razorpay_order_id
+             );
+
+             formData.append(
+               'razorpay_signature',
+               data.razorpay_signature
+             );
+
+             formData.append(
+               'uid',
+               userId || ''
+             );
+
+             formData.append(
+               'phone_number',
+               vehicleData.phone_number || ''
+             );
+
+             formData.append(
+               'vehicle_number',
+               vehicleData.vehicle_number || ''
+             );
+
+             formData.append(
+               'chassis_number',
+               vehicleData.chassis_number || ''
+             );
+
+             formData.append(
+               'state',
+               vehicleData.state || ''
+             );
+
+             formData.append(
+               'category',
+               vehicleData.category || ''
+             );
+
+             formData.append(
+               'sub_category',
+               vehicleData.sub_category || ''
+             );
+
+             formData.append(
+               'start_date',
+               vehicleData.start_date || ''
+             );
+
+             formData.append(
+               'end_date',
+               vehicleData.end_date || ''
+             );
+
+             formData.append(
+               'no_of_seats',
+               vehicleData.no_of_seats || ''
+             );
+
+             formData.append(
+               'ac_type',
+               vehicleData.ac_type || ''
+             );
+
+             formData.append(
+               'amount',
+               String(taxData?.amount || 0)
+             );
+
+             formData.append(
+               'service_fees',
+               String(taxData?.service_fees || 0)
+             );
+
+             formData.append(
+               'payable',
+               String(payableAmount || 0)
+             );
+
+             console.log(
+               'VERIFYING RAZORPAY PAYMENT...'
+             );
+
+             const response = await fetch(
+               `${BASE_URL}verify-payment.php`,
+               {
+                 method: 'POST',
+
+                 headers: {
+                   'Content-Type':
+                     'application/x-www-form-urlencoded',
+                 },
+
+                 body: formData.toString(),
+               }
+             );
+
+             const result =
+               await response.json();
+
+             console.log(
+               'VERIFY PAYMENT RESPONSE:',
+               result
+             );
+
+             setLoading(false);
+
+             if (result.status === true) {
+
+               Alert.alert(
+                 'Payment Successful',
+                 'Payment completed and saved successfully.',
+                 [
+                   {
+                     text: 'OK',
+                     onPress: () => {
+
+                       navigation.replace(
+                         'PaymentProcessingScreen',
+                         {
+                           paymentId:
+                             result.payment_id,
+                         }
+                       );
+
+                     }
+                   }
+                 ]
+               );
+
+             } else {
+
+               Alert.alert(
+                 'Payment Verification Failed',
+                 result.message ||
+                   'Payment verification failed.'
+               );
+
+             }
+
+           } catch (error) {
+
+             console.log(
+               'VERIFY PAYMENT ERROR:',
+               error
+             );
+
+             setLoading(false);
+
+             Alert.alert(
+               'Error',
+               'Payment completed but verification failed. Please contact support.'
+             );
+           }
+
+         })
+
+
+        .catch(error => {
+          console.log(
+            'RAZORPAY ERROR:',
+            error,
           );
-        })}
-      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.title}>
-          UPI ID
+          setLoading(false);
+
+          /*
+           * Error code 0 generally means
+           * user cancelled the checkout.
+           */
+
+          if (
+            error &&
+            error.code === 0
+          ) {
+            Alert.alert(
+              'Payment Cancelled',
+              'You cancelled the payment.',
+            );
+          } else {
+            Alert.alert(
+              'Payment Failed',
+              error?.description ||
+                'Payment was cancelled or failed.',
+            );
+          }
+        });
+    } catch (error) {
+      console.log(
+        'RAZORPAY CHECKOUT ERROR:',
+        error,
+      );
+
+      setLoading(false);
+
+      Alert.alert(
+        'Error',
+        'Unable to open Razorpay.',
+      );
+    }
+  };
+
+  // =========================================================
+  // UI
+  // =========================================================
+
+  return (
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top', 'bottom']}>
+
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={
+          styles.contentContainer
+        }>
+
+        {/* ================================
+            HEADING
+        ================================= */}
+
+        <Text style={styles.heading}>
+          Payment Details
         </Text>
 
-        {upi.map(item => (
-          <View
-            key={item.id}
-            style={styles.row}>
-            <Text style={styles.flex}>
-              {item.name}
+        {/* ================================
+            TAX DETAILS
+        ================================= */}
+
+        {taxData && taxData.taxAvailable === true && (
+          <View style={styles.card}>
+
+            <Text style={styles.title}>
+              Tax Details
             </Text>
+
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>
+                Tax
+              </Text>
+
+              <Text style={styles.priceValue}>
+                ₹{Number(taxData.amount || 0)}
+              </Text>
+            </View>
+
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>
+                Service Fees
+              </Text>
+
+              <Text style={styles.priceValue}>
+                ₹
+                {Number(
+                  taxData.service_fees || 0,
+                )}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>
+                Sub Total
+              </Text>
+
+              <Text style={styles.priceValue}>
+                ₹
+                {Number(
+                  taxData.total || 0,
+                )}
+              </Text>
+            </View>
+
+            {/* WALLET */}
+
+            {walletBalance > 50 && (
+              <View style={styles.walletBox}>
+
+                <View>
+                  <Text style={styles.walletTitle}>
+                    Wallet Balance
+                  </Text>
+
+                  <Text style={styles.walletText}>
+                    ₹{walletBalance}
+                  </Text>
+                </View>
+
+                <Text style={styles.walletApplied}>
+                  Applied
+                </Text>
+
+              </View>
+            )}
+
+            {/* PAYABLE */}
+
+            <View style={styles.payableBox}>
+
+              <Text style={styles.payableLabel}>
+                Payable Amount
+              </Text>
+
+              <Text style={styles.payableAmount}>
+                ₹{payableAmount}
+              </Text>
+
+            </View>
+
+          </View>
+        )}
+
+        {taxData && taxData.taxAvailable === false && (
+          <View style={styles.taxNotAvailableCard}>
+
+            <View style={styles.taxIconCircle}>
+              <Text style={styles.taxIcon}>!</Text>
+            </View>
+
+            <Text style={styles.taxNotAvailableTitle}>
+              Tax Calculation Unavailable
+            </Text>
+
+            <Text style={styles.taxNotAvailableText}>
+              We are unable to calculate the vehicle tax
+              for the details provided.
+            </Text>
+
+            <Text style={styles.contactText}>
+              Please contact us on WhatsApp or call us
+              to know the applicable tax amount.
+            </Text>
+
+            <View style={styles.contactBox}>
+
+              <Text style={styles.contactLabel}>
+                WhatsApp / Contact
+              </Text>
+
+              <Text style={styles.contactNumber}>
+                +91-9625065008
+              </Text>
+
+            </View>
 
             <TouchableOpacity
-              onPress={() =>
-                copyText(item.name)
-              }>
-              <Ionicons
-                name="copy-outline"
-                size={22}
-                color="green"
-              />
+              style={styles.contactButton}
+              onPress={() => {
+                // WhatsApp / call action yahan laga sakte hain
+              }}
+            >
+              <Text style={styles.contactButtonText}>
+                Contact Us
+              </Text>
             </TouchableOpacity>
+
           </View>
-        ))}
-      </View>
+        )}
 
-      <View style={styles.card}>
-        <Text style={styles.title}>
-          Bank Details
-        </Text>
+        {/* ================================
+            PAYMENT INFORMATION
+        ================================= */}
 
-        {bank.map(item => (
-          <View
-            key={item.id}
-            style={{
-              marginBottom: 20,
-            }}>
-            <Text
-              style={{
-                fontWeight: '700',
-                marginBottom: 10,
-              }}>
-              {item.bank_name}
+        <View style={styles.card}>
+
+          <Text style={styles.title}>
+            Secure Payment
+          </Text>
+
+          <Text style={styles.infoText}>
+            Pay securely using Razorpay.
+            You can choose an available payment
+            method such as UPI, Card or Net Banking
+            on the Razorpay payment screen.
+          </Text>
+
+          <View style={styles.secureBox}>
+
+            <Text style={styles.secureIcon}>
+              🔒
             </Text>
 
-            <View style={styles.row}>
-              <Text style={styles.flex}>
-                A/C :
-                {' '}
-                {item.account_number}
+            <View style={styles.secureContent}>
+
+              <Text style={styles.secureTitle}>
+                Secure Payment
               </Text>
 
-              <TouchableOpacity
-                onPress={() =>
-                  copyText(
-                    item.account_number,
-                  )
-                }>
-                <Ionicons
-                  name="copy-outline"
-                  size={22}
-                  color="green"
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.row}>
-              <Text style={styles.flex}>
-                IFSC :
-                {' '}
-                {item.ifsc_code}
+              <Text style={styles.secureText}>
+                Your payment is securely processed
+                through Razorpay.
               </Text>
 
-              <TouchableOpacity
-                onPress={() =>
-                  copyText(
-                    item.ifsc_code,
-                  )
-                }>
-                <Ionicons
-                  name="copy-outline"
-                  size={22}
-                  color="green"
-                />
-              </TouchableOpacity>
             </View>
+
           </View>
-        ))}
-      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.title}>
-          Payment Mode
-        </Text>
+        </View>
 
-        <Picker
-          selectedValue={paymentMode}
-          onValueChange={setPaymentMode}>
-          <Picker.Item
-            label="Select Payment Mode"
-            value=""
-          />
+        {/* ================================
+            PAY BUTTON
+        ================================= */}
 
-          <Picker.Item
-            label="QR CODE"
-            value="QR CODE"
-          />
-
-          <Picker.Item
-            label="UPI"
-            value="UPI"
-          />
-
-          <Picker.Item
-            label="BANK TRANSFER"
-            value="BANK TRANSFER"
-          />
-        </Picker>
-      </View>
-
-      <TouchableOpacity
-        style={styles.uploadBtn}
-        onPress={pickImage}>
-        <Ionicons
-          name="cloud-upload-outline"
-          size={22}
+{taxData && taxData.taxAvailable !== false && (
+  <TouchableOpacity
+    style={[
+      styles.payBtn,
+      loading && styles.payBtnDisabled,
+    ]}
+    onPress={createRazorpayOrder}
+    disabled={loading}
+  >
+    {loading ? (
+      <>
+        <ActivityIndicator
+          size="small"
           color="#fff"
         />
 
         <Text
-          style={styles.uploadText}>
-          Upload Transaction Screenshot
+          style={[
+            styles.payText,
+            {
+              marginLeft: 10,
+            },
+          ]}
+        >
+          Processing...
         </Text>
-      </TouchableOpacity>
+      </>
+    ) : (
+      <Text style={styles.payText}>
+        Pay ₹{payableAmount}
+      </Text>
+    )}
+  </TouchableOpacity>
+)}
 
-      {image && (
-        <Image
-          source={{
-            uri: image.uri,
-          }}
-          style={styles.preview}
-        />
-      )}
-
-      <TouchableOpacity
-        style={styles.payBtn}
-        onPress={submitPayment}>
-        <Text style={styles.payText}>
-          Pay Now
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
-      </SafeAreaView>
-
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
+// =========================================================
+// STYLES
+// =========================================================
+
 const styles = StyleSheet.create({
+
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+
+  contentContainer: {
     padding: 15,
+    paddingBottom: 30,
   },
 
   heading: {
     fontSize: 24,
     fontWeight: '700',
     marginBottom: 15,
+    color: '#222',
   },
 
   card: {
@@ -536,64 +796,138 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
   },
 
   title: {
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 15,
+    color: '#222',
   },
 
-  price: {
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+
+  priceLabel: {
     fontSize: 16,
-    marginBottom: 5,
+    color: '#555',
   },
 
-  total: {
-    fontSize: 20,
+  priceValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222',
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#e5e5e5',
+    marginVertical: 10,
+  },
+
+  walletBox: {
+    backgroundColor: '#eef9f0',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 5,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  walletTitle: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 3,
+  },
+
+  walletText: {
+    fontSize: 18,
     fontWeight: '700',
     color: 'green',
   },
 
-  qr: {
-    width: 220,
-    height: 220,
-    alignSelf: 'center',
-    resizeMode: 'contain',
+  walletApplied: {
+    backgroundColor: 'green',
+    color: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    fontSize: 12,
+    fontWeight: '700',
+    overflow: 'hidden',
   },
 
-  row: {
+  payableBox: {
+    backgroundColor: '#fff4ed',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  payableLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#333',
+  },
+
+  payableAmount: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: 'orangered',
+  },
+
+  infoText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#666',
+  },
+
+  secureBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 6,
+    backgroundColor: '#f7f7f7',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 15,
   },
 
-  flex: {
+  secureIcon: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+
+  secureContent: {
     flex: 1,
   },
 
-  uploadBtn: {
-    backgroundColor: '#ff7a00',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
+  secureTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 3,
   },
 
-  uploadText: {
-    color: '#fff',
-    marginLeft: 8,
-    fontWeight: '600',
-  },
-
-  preview: {
-    width: 140,
-    height: 140,
-    alignSelf: 'center',
-    marginVertical: 15,
-    borderRadius: 10,
+  secureText: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
   },
 
   payBtn: {
@@ -601,7 +935,15 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: 5,
     marginBottom: 30,
+    elevation: 3,
+  },
+
+  payBtnDisabled: {
+    opacity: 0.7,
   },
 
   payText: {
@@ -609,4 +951,94 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+taxNotAvailableCard: {
+  backgroundColor: '#fff',
+  borderRadius: 14,
+  padding: 20,
+  marginBottom: 15,
+  alignItems: 'center',
+  elevation: 3,
+  shadowColor: '#000',
+  shadowOpacity: 0.08,
+  shadowRadius: 6,
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+},
+
+taxIconCircle: {
+  width: 55,
+  height: 55,
+  borderRadius: 30,
+  backgroundColor: '#fff1e8',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 12,
+},
+
+taxIcon: {
+  fontSize: 30,
+  fontWeight: '800',
+  color: 'orangered',
+},
+
+taxNotAvailableTitle: {
+  fontSize: 20,
+  fontWeight: '800',
+  color: '#222',
+  textAlign: 'center',
+  marginBottom: 10,
+},
+
+taxNotAvailableText: {
+  fontSize: 15,
+  color: '#555',
+  lineHeight: 22,
+  textAlign: 'center',
+  marginBottom: 10,
+},
+
+contactText: {
+  fontSize: 14,
+  color: '#666',
+  lineHeight: 21,
+  textAlign: 'center',
+  marginBottom: 15,
+},
+
+contactBox: {
+  width: '100%',
+  backgroundColor: 'green',
+  borderRadius: 10,
+  padding: 14,
+  alignItems: 'center',
+  marginBottom: 15,
+},
+
+contactLabel: {
+  fontSize: 13,
+  color: '#fff',
+  marginBottom: 5,
+},
+
+contactNumber: {
+  fontSize: 20,
+  fontWeight: '800',
+  color: '#fff',
+},
+
+contactButton: {
+  width: '100%',
+  backgroundColor: 'orangered',
+  borderRadius: 10,
+  paddingVertical: 14,
+  alignItems: 'center',
+},
+
+contactButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '700',
+},
 });

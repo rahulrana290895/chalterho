@@ -176,9 +176,7 @@ export default function HomeScreen({ navigation }) {
   </View>
 
   <View style={styles.rightSection}>
-    <Text style={styles.balanceText}>
-      ₹{balance}
-    </Text>
+{/*    <Text style={styles.balanceText}> ₹{balance} </Text>  */}
 
     <TouchableOpacity
       onPress={() => navigation.navigate('MoreScreen')}>

@@ -116,7 +116,7 @@ return (
     </Text>
   </View>
 
-  <View style={styles.card}>
+  {/*<View style={styles.card}>
 
     <Text style={styles.balanceLabel}>
       Wallet Balance
@@ -126,7 +126,7 @@ return (
       ₹{balance}
     </Text>
 
-  </View>
+  </View>*/}
 
   <View style={styles.card}>
 

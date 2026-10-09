@@ -276,7 +276,7 @@ const loadDuration = async () => {
 
   const showChassis = state && vehicleNumber.substring(0, 2).toUpperCase() === state.toUpperCase();
   const normalizedState = state?.toUpperCase();
-  const showSeatAc = (normalizedState === 'UP' || normalizedState === 'UK') && ['5', '6', '7', '8'].includes(String(subCategory));
+  const showSeatAc = (normalizedState === 'UP' || normalizedState === 'UK') && ['3', '4' , '5', '6', '7', '8'].includes(String(subCategory));
 
   /* =======================================================
      DATE HELPERS
@@ -316,48 +316,100 @@ const calculateEndDate = (selectedDuration, selectedStart) => {
       break;
 
     case 'Month':
+      // Current month ka last day
       date = new Date(
         date.getFullYear(),
         date.getMonth() + 1,
         0,
-        date.getHours(),
-        date.getMinutes(),
+        23,
+        59,
+        59,
+        999,
       );
-      date = setEndOfDay(date);
       break;
 
-    case 'Quarter':
-      date = new Date(
-        date.getFullYear(),
-        date.getMonth() + 3,
-        0,
-        date.getHours(),
-        date.getMinutes(),
-      );
-      date = setEndOfDay(date);
-      break;
+    case 'Quarter': {
+      const year = date.getFullYear();
+      const month = date.getMonth(); // 0 = Jan, 11 = Dec
 
-    case 'Half Year':
-      date = new Date(
-        date.getFullYear(),
-        date.getMonth() + 6,
-        0,
-        date.getHours(),
-        date.getMinutes(),
-      );
-      date = setEndOfDay(date);
-      break;
+      let endMonth;
 
-    case 'Year':
+      // January - March
+      if (month <= 2) {
+        endMonth = 2;
+      }
+      // April - June
+      else if (month <= 5) {
+        endMonth = 5;
+      }
+      // July - September
+      else if (month <= 8) {
+        endMonth = 8;
+      }
+      // October - December
+      else {
+        endMonth = 11;
+      }
+
+      // Quarter ka last day
       date = new Date(
-        date.getFullYear() + 1,
-        date.getMonth(),
+        year,
+        endMonth + 1,
         0,
-        date.getHours(),
-        date.getMinutes(),
+        23,
+        59,
+        59,
+        999,
       );
-      date = setEndOfDay(date);
+
       break;
+    }
+
+    case 'Half Year': {
+      const year = date.getFullYear();
+      const month = date.getMonth(); // 0 = Jan, 11 = Dec
+
+      let endMonth;
+
+      // January - June
+      if (month <= 5) {
+        endMonth = 5;
+      }
+      // July - December
+      else {
+        endMonth = 11;
+      }
+
+      // Half Year ka last day
+      date = new Date(
+        year,
+        endMonth + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
+
+      break;
+    }
+
+    case 'Year': {
+      const year = date.getFullYear();
+
+      // Current year ka 31 December
+      date = new Date(
+        year,
+        11,
+        31,
+        23,
+        59,
+        59,
+        999,
+      );
+
+      break;
+    }
 
     default:
       break;
@@ -409,6 +461,15 @@ const goToPayment = () => {
     Alert.alert(
       'Invalid Mobile Number',
       'Please enter a valid 10 digit mobile number',
+    );
+
+    return;
+  }
+
+  if (showChassis && chassisNumber.length !== 5) {
+    Alert.alert(
+      'Invalid Chassis Number',
+      'Please enter a valid 5 digit chassis number',
     );
 
     return;
@@ -624,16 +685,16 @@ const goToPayment = () => {
               icon="car-sport-outline"
               placeholder="Example: PB01AB1234"
               value={vehicleNumber}
-              onChangeText={text =>
-                setVehicleNumber(
-                  text.toUpperCase(),
-                )
-              }
+              onChangeText={text => {
+                const cleanedText = text
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, '');
+                setVehicleNumber(cleanedText);
+              }}
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={10}
             />
-
 
             {/* REGISTRATION STATE */}
 
@@ -1512,7 +1573,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 9,
+    marginBottom: 8,
     overflow: 'hidden',
   },
   selectIcon: {
@@ -1530,7 +1591,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     width: '100%',
-    height: 48,
+    height: 58,
     color: '#30343B',
     backgroundColor: '#F3F4F6',
   },
@@ -1539,7 +1600,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    height: 48,
+    height: 50,
     justifyContent: 'center',
     paddingLeft: 10,
     zIndex: 2,

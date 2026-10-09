@@ -8,10 +8,14 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Alert,
+  Platform,
+  PermissionsAndroid
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import {BASE_URL} from './config/config';
 
 export default function TaxHistoryScreen() {
@@ -40,10 +44,78 @@ export default function TaxHistoryScreen() {
     }
   };
 
-  const openDocument = fileName => {
-    const url = `https://chalterho.com/assets/docs/${fileName}`;
-    Linking.openURL(url);
-  };
+
+const openDocument = async fileName => {
+  try {
+    if (!fileName) {
+      Alert.alert('Error', 'Document not found');
+      return;
+    }
+
+    const cleanFileName = decodeURIComponent(
+      fileName.split('/').pop().split('?')[0],
+    );
+
+    const extension = cleanFileName
+      .split('.')
+      .pop()
+      .toLowerCase();
+
+    const mimeTypes = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      bmp: 'image/bmp',
+      pdf: 'application/pdf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      csv: 'text/csv',
+      txt: 'text/plain',
+      zip: 'application/zip',
+      rar: 'application/vnd.rar',
+    };
+
+    const mimeType =
+      mimeTypes[extension] || 'application/octet-stream';
+
+    const url =
+      `https://chalterho.com/assets/docs/${encodeURIComponent(cleanFileName)}`;
+
+    const filePath =
+      `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${cleanFileName}`;
+
+    const response = await ReactNativeBlobUtil.config({
+      path: filePath,
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        notification: true,
+        title: cleanFileName,
+        description: 'Downloading file...',
+        mime: mimeType,
+        mediaScannable: true,
+      },
+    }).fetch('GET', url);
+
+    const status = response.info().status;
+
+    if (status >= 200 && status < 300) {
+      Alert.alert(
+        'Download Complete',
+        `${cleanFileName} saved in your Downloads folder.`,
+      );
+    } else {
+      await ReactNativeBlobUtil.fs.unlink(filePath).catch(() => {});
+      Alert.alert('Error', 'File download failed.');
+    }
+  } catch (error) {
+    console.log('Download Error:', error);
+    Alert.alert('Error', 'Unable to download file.');
+  }
+};
 
   const renderItem = ({item}) => {
     const total =

@@ -171,7 +171,7 @@ export default function HomeScreen({ navigation }) {
     />
 
     <Text style={styles.headerTitle}>
-      ChalteRho
+      CHALTE RHO
     </Text>
   </View>
 

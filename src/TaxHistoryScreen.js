@@ -56,10 +56,7 @@ const openDocument = async fileName => {
       fileName.split('/').pop().split('?')[0],
     );
 
-    const extension = cleanFileName
-      .split('.')
-      .pop()
-      .toLowerCase();
+    const extension = cleanFileName.split('.').pop().toLowerCase();
 
     const mimeTypes = {
       jpg: 'image/jpeg',
@@ -79,14 +76,16 @@ const openDocument = async fileName => {
       rar: 'application/vnd.rar',
     };
 
-    const mimeType =
-      mimeTypes[extension] || 'application/octet-stream';
+    const mimeType = mimeTypes[extension] || 'application/octet-stream';
+    const url = `https://chalterho.com/assets/docs/${encodeURIComponent(cleanFileName)}`;
 
-    const url =
-      `https://chalterho.com/assets/docs/${encodeURIComponent(cleanFileName)}`;
+    // Agar image hai to Pictures folder me save karein taaki Gallery me dikhe, warna Downloads me
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
+    const targetDir = isImage
+      ? ReactNativeBlobUtil.fs.dirs.PictureDir
+      : ReactNativeBlobUtil.fs.dirs.DownloadDir;
 
-    const filePath =
-      `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${cleanFileName}`;
+    const filePath = `${targetDir}/${cleanFileName}`;
 
     const response = await ReactNativeBlobUtil.config({
       path: filePath,
@@ -100,17 +99,21 @@ const openDocument = async fileName => {
       },
     }).fetch('GET', url);
 
-    const status = response.info().status;
-
-    if (status >= 200 && status < 300) {
-      Alert.alert(
-        'Download Complete',
-        `${cleanFileName} saved in your Downloads folder.`,
-      );
-    } else {
-      await ReactNativeBlobUtil.fs.unlink(filePath).catch(() => {});
-      Alert.alert('Error', 'File download failed.');
+    // Media scan karna zaroori hai taaki phone ki gallery/file indexer ko pata chale
+    if (isImage) {
+      ReactNativeBlobUtil.fs.scanFile([{ path: filePath, mime: mimeType }])
+        .then(() => {
+          console.log('scanned successfully');
+        })
+        .catch((err) => {
+          console.log('scan error', err);
+        });
     }
+
+    Alert.alert(
+      'Download Complete',
+      `${cleanFileName} saved successfully!`,
+    );
   } catch (error) {
     console.log('Download Error:', error);
     Alert.alert('Error', 'Unable to download file.');

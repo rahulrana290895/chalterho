@@ -21,7 +21,7 @@ import ForgotPasswordScreen from './src/ForgotPasswordScreen';
 import PaymentCompletedScreen from './src/PaymentCompletedScreen';
 import PaymentRejectedScreen from './src/PaymentRejectedScreen';
 import ReferEarnScreen from './src/ReferEarnScreen';
-
+import OTPVerificationScreen from './src/OTPVerificationScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -90,6 +90,11 @@ export default function App() {
               component={RegisterScreen}
               options={{ headerShown: false }}
             />
+              <Stack.Screen
+                 name="OTPVerificationScreen"
+                 component={OTPVerificationScreen}
+                 options={{ headerShown: false }}
+                 />
 
             <Stack.Screen
               name="ForgotPasswordScreen"

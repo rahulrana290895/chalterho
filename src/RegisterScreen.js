@@ -10,12 +10,11 @@ import {
   Platform,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
-
 import {BASE_URL} from './config/config';
 
 const RegisterScreen = () => {
@@ -29,127 +28,156 @@ const RegisterScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleRegister = async () => {
-    if (!name || !mobile || !password) {
-      Alert.alert('Error', 'Please fill all required fields');
+    const cleanName = name.trim();
+    const cleanMobile = mobile.trim();
+    const cleanReferBy = referBy.trim();
+
+    if (!cleanName || !cleanMobile || !password) {
+      Alert.alert('Error', 'Please fill all required fields.');
       return;
     }
 
-    if (mobile.length !== 10) {
-      Alert.alert('Error', 'Enter valid mobile number');
+    if (!/^[6-9][0-9]{9}$/.test(cleanMobile)) {
+      Alert.alert('Error', 'Enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters.');
+      return;
+    }
+
+    if (loading) {
       return;
     }
 
     setLoading(true);
 
     try {
-      // Register User
-      const response = await fetch(`${BASE_URL}register.php`, {
+      const response = await fetch(`${BASE_URL}send_otp.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
-          name,
-          number: mobile,
-          password,
-          refer_by: referBy,
+          name: cleanName,
+          number: cleanMobile,
+          password: password,
+          refer_by: cleanReferBy,
         }),
       });
 
-      const result = await response.json();
+      const rawResponse = await response.text();
 
-      if (result.status === 'success') {
-        // Auto Login
-        const loginResponse = await fetch(`${BASE_URL}login.php`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            mobile: mobile,
-            password: password,
-          }),
-        });
+      console.log('OTP API URL:', `${BASE_URL}send_otp.php`);
+      console.log('OTP API status:', response.status);
+      console.log('OTP API response:', rawResponse);
 
-        const loginResult = await loginResponse.json();
+      let result;
 
-        if (loginResult.status === 'success') {
-          await AsyncStorage.setItem(
-            'userId',
-            loginResult.user.id.toString(),
-          );
+      try {
+        result = JSON.parse(rawResponse);
+      } catch (error) {
+        Alert.alert(
+          'Server Error',
+          'Invalid server response. Please check the PHP API.',
+        );
+        return;
+      }
 
-          navigation.replace('MainTabs');
-        } else {
+      if (response.ok && result.status === 'success') {
+        if (!result.verification_token) {
           Alert.alert(
-            'Success',
-            'Registration completed. Please login manually.',
+            'Server Error',
+            'Verification token missing from server response.',
           );
-
-          navigation.navigate('LoginScreen');
+          return;
         }
+
+        navigation.navigate('OTPVerificationScreen', {
+          name: cleanName,
+          mobile: cleanMobile,
+          password: password,
+          referBy: cleanReferBy,
+          verificationToken: result.verification_token,
+        });
       } else {
         Alert.alert(
-          'Error',
-          result.message || 'Registration Failed',
+          'Registration Failed',
+          result.message || 'Unable to send OTP. Please try again.',
         );
       }
     } catch (error) {
-      console.log(error);
-      Alert.alert('Error', 'Server not responding');
-    }
+      console.log('Registration error:', error);
 
-    setLoading(false);
+      Alert.alert(
+        'Connection Error',
+        'Server not responding. Please check your internet connection.',
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <SafeAreaView style={{flex: 1}}>
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        style={{flex: 1}}
+        style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+
         <ScrollView
-          contentContainerStyle={{flexGrow: 1}}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled">
+
           <View style={styles.container}>
             <Image
               source={require('./assets/logo.png')}
               style={styles.logo}
+              resizeMode="contain"
             />
 
             <Text style={styles.appName}>Registration</Text>
 
             <TextInput
               placeholder="Full Name"
-              placeholderTextColor="orangered"
+              placeholderTextColor="#888"
               style={styles.input}
               value={name}
               onChangeText={setName}
+              autoCapitalize="words"
+              editable={!loading}
             />
 
             <TextInput
               placeholder="Mobile Number"
-              placeholderTextColor="orangered"
+              placeholderTextColor="#888"
               keyboardType="number-pad"
               maxLength={10}
               style={styles.input}
               value={mobile}
-              onChangeText={setMobile}
+              onChangeText={text =>
+                setMobile(text.replace(/[^0-9]/g, ''))
+              }
+              editable={!loading}
             />
 
             <View style={styles.passwordContainer}>
               <TextInput
-                placeholder="Password"
-                placeholderTextColor="orangered"
+                placeholder="Password (minimum 6 characters)"
+                placeholderTextColor="#888"
                 secureTextEntry={!showPassword}
                 style={styles.passwordInput}
                 value={password}
                 onChangeText={setPassword}
+                editable={!loading}
               />
 
               <TouchableOpacity
                 style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}>
-                <Text style={{color: 'orangered'}}>
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={loading}>
+                <Text style={styles.showText}>
                   {showPassword ? 'Hide' : 'Show'}
                 </Text>
               </TouchableOpacity>
@@ -157,23 +185,38 @@ const RegisterScreen = () => {
 
             <TextInput
               placeholder="Referral Code (Optional)"
-              placeholderTextColor="orangered"
+              placeholderTextColor="#888"
               style={styles.input}
               value={referBy}
               onChangeText={setReferBy}
+              autoCapitalize="characters"
+              editable={!loading}
             />
 
             <TouchableOpacity
-              style={styles.button}
+              style={[
+                styles.button,
+                loading && styles.disabledButton,
+              ]}
               onPress={handleRegister}
-              disabled={loading}>
-              <Text style={styles.buttonText}>
-                {loading ? 'Registering...' : 'Register'}
-              </Text>
+              disabled={loading}
+              activeOpacity={0.8}>
+
+              {loading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#fff" />
+                  <Text style={styles.buttonText}>
+                    {' '}Sending OTP...
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Send OTP</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => navigation.navigate('LoginScreen')}>
+              onPress={() => navigation.navigate('LoginScreen')}
+              disabled={loading}>
               <Text style={styles.loginText}>
                 Already have an account? Login
               </Text>
@@ -188,21 +231,28 @@ const RegisterScreen = () => {
 export default RegisterScreen;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 25,
     backgroundColor: '#fff',
   },
-
   logo: {
     width: 110,
     height: 110,
     alignSelf: 'center',
     marginBottom: 10,
-    resizeMode: 'contain',
   },
-
   appName: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -210,7 +260,6 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     color: 'orangered',
   },
-
   input: {
     borderWidth: 2,
     borderColor: 'orangered',
@@ -218,9 +267,8 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 15,
     fontSize: 16,
-    color: 'orangered',
+    color: '#222',
   },
-
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,32 +277,39 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 15,
   },
-
   passwordInput: {
     flex: 1,
     padding: 14,
     fontSize: 16,
-    color: 'orangered',
+    color: '#222',
   },
-
   eyeButton: {
     paddingHorizontal: 12,
+    paddingVertical: 14,
   },
-
+  showText: {
+    color: 'orangered',
+  },
   button: {
     backgroundColor: 'orangered',
     padding: 16,
     borderRadius: 8,
     marginTop: 10,
   },
-
+  disabledButton: {
+    opacity: 0.7,
+  },
   buttonText: {
     color: '#fff',
     textAlign: 'center',
     fontSize: 16,
     fontWeight: 'bold',
   },
-
+  loadingRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loginText: {
     marginTop: 20,
     textAlign: 'center',

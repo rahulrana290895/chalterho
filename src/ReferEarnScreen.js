@@ -108,11 +108,11 @@ return (
     />
 
     <Text style={styles.heading}>
-      Refer & Earn
+      Share
     </Text>
 
     <Text style={styles.subHeading}>
-      Invite your friends and earn rewards
+      Invite your friends
     </Text>
   </View>
 
@@ -129,7 +129,7 @@ return (
   </View>*/}
 
   <View style={styles.card}>
-
+{/*
     <Text style={styles.label}>
       Your Referral Code
     </Text>
@@ -146,11 +146,12 @@ return (
         Copy Code
       </Text>
     </TouchableOpacity>
-
+ */}
     <TouchableOpacity
       style={styles.shareBtn}
       onPress={shareReferral}
     >
+
       <Ionicons
         name="logo-whatsapp"
         size={20}
@@ -163,7 +164,7 @@ return (
     </TouchableOpacity>
 
   </View>
-
+ {/*
   <View style={styles.card}>
     <Text style={styles.workTitle}>
       How It Works
@@ -185,7 +186,7 @@ return (
       • Reward amount is added directly to your wallet.
     </Text>
   </View>
-
+*/}
 </View>
 </ScrollView>
 </SafeAreaView>

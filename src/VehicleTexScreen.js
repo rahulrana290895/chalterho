@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from 'react';
-
 import {
   View,
   Text,
@@ -11,1318 +10,816 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Picker} from '@react-native-picker/picker';
 import DatePicker from 'react-native-date-picker';
 import Ionicons from '@react-native-vector-icons/ionicons';
-
 import {BASE_URL} from './config/config';
-
-
-/* =========================================================
-   INPUT BOX
-   IMPORTANT:
-   Keep this OUTSIDE VehicleTexScreen
-========================================================= */
+import {useTranslation} from 'react-i18next';
 
 const InputBox = React.memo(
-  ({icon,placeholder,value,onChangeText,keyboardType,maxLength,autoCapitalize = 'none',autoCorrect = false,inputMode,}) => {
-    return (
-      <View style={styles.inputWrapper}>
-        <View style={styles.inputIcon}>
-          <Ionicons name={icon} size={21} color="#EF5B25" />
-        </View>
-        <TextInput
-          placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={keyboardType}
-          inputMode={inputMode}
-          maxLength={maxLength}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={autoCorrect}
-          blurOnSubmit={false}
-          style={styles.input}
-        />
-      </View>
-    );
-  },
-);
-
-/* =========================================================
-   SELECT BOX
-   IMPORTANT:
-   Placeholder is NOT a Picker.Item.
-   Therefore it will NOT appear in dropdown.
-========================================================= */
-
-const SelectBox = ({icon, value, onValueChange, placeholder, children,}) => {
-  return (
-    <View style={styles.selectWrapper}>
-      {/* ICON */}
-      <View style={styles.selectIcon}>
+  ({
+    icon,
+    placeholder,
+    value,
+    onChangeText,
+    keyboardType,
+    maxLength,
+    autoCapitalize = 'none',
+    autoCorrect = false,
+    inputMode,
+  }) => (
+    <View style={styles.inputWrapper}>
+      <View style={styles.inputIcon}>
         <Ionicons name={icon} size={21} color="#EF5B25" />
       </View>
-      {/* PICKER */}
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={value}
-          onValueChange={onValueChange}
-          style={styles.picker}
-          dropdownIconColor="#EF5B25"
-          mode="dropdown"
-        >
-          {children}
-        </Picker>
-        {/* PLACEHOLDER ONLY This is NOT part of dropdown */}
-        {!value && (
-          <View
-            pointerEvents="none"
-            style={styles.placeholderOverlay}
-          >
-            <Text style={styles.placeholderText}>
-              {placeholder}
-            </Text>
-          </View>
-        )}
-      </View>
+      <TextInput
+        placeholder={placeholder}
+        placeholderTextColor="#9CA3AF"
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        inputMode={inputMode}
+        maxLength={maxLength}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={autoCorrect}
+        blurOnSubmit={false}
+        style={styles.input}
+      />
     </View>
-  );
-};
+  ),
+);
 
+const SelectBox = ({
+  icon,
+  value,
+  onValueChange,
+  placeholder,
+  children,
+}) => (
+  <View style={styles.selectWrapper}>
+    <View style={styles.selectIcon}>
+      <Ionicons name={icon} size={21} color="#EF5B25" />
+    </View>
 
-/* =========================================================
-   MAIN SCREEN
-========================================================= */
+    <View style={styles.pickerContainer}>
+      <Picker
+        selectedValue={value}
+        onValueChange={onValueChange}
+        style={styles.picker}
+        dropdownIconColor="#EF5B25"
+        mode="dropdown">
+        {children}
+      </Picker>
+
+      {!value && (
+        <View
+          pointerEvents="none"
+          style={styles.placeholderOverlay}>
+          <Text style={styles.placeholderText}>
+            {placeholder}
+          </Text>
+        </View>
+      )}
+    </View>
+  </View>
+);
 
 export default function VehicleTexScreen({navigation}) {
-  /* =======================================================
-     STATES
-  ======================================================= */
-const [phone, setPhone] = useState('');
-const [vehicleNumber, setVehicleNumber] = useState('');
-const [chassisNumber, setChassisNumber] = useState('');
-const [states, setStates] = useState([]);
-const [state, setState] = useState('');
-const [categories, setCategories] = useState([]);
-const [category, setCategory] = useState('');
-const [subCategories, setSubCategories] = useState([]);
-const [subCategory, setSubCategory] = useState('');
-const [noOfSeats, setNoOfSeats] = useState('');
-const [acType, setAcType] = useState('');
-const [durationOptions, setDurationOptions] = useState([]);
-const [duration, setDuration] = useState('');
-const [startDate, setStartDate] = useState(new Date());
-const [endDate, setEndDate] = useState(new Date());
-const [openStart, setOpenStart] = useState(false);
-const [openEnd, setOpenEnd] = useState(false);
-  /* =======================================================
-     LOAD DATA
-  ======================================================= */
+  const {t} = useTranslation();
+
+  const [phone, setPhone] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [chassisNumber, setChassisNumber] = useState('');
+
+  const [states, setStates] = useState([]);
+  const [state, setState] = useState('');
+
+  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState('');
+
+  const [subCategories, setSubCategories] = useState([]);
+  const [subCategory, setSubCategory] = useState('');
+
+  const [noOfSeats, setNoOfSeats] = useState('');
+  const [acType, setAcType] = useState('');
+
+  const [durationOptions, setDurationOptions] = useState([]);
+  const [duration, setDuration] = useState('');
+
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+
+  const [openStart, setOpenStart] = useState(false);
+  const [openEnd, setOpenEnd] = useState(false);
 
   useEffect(() => {
     loadStates();
     loadCategories();
   }, []);
 
-useEffect(() => {
-  if (
-    state &&
-    category &&
-    subCategory &&
-    vehicleNumber.length >= 4
-  ) {
-    loadDuration();
-  } else {
-    setDurationOptions([]);
-    setDuration('');
-  }
-}, [
-  state,
-  category,
-  subCategory,
-  vehicleNumber,
-]);
-  /* =======================================================
-     LOAD STATES
-  ======================================================= */
+  useEffect(() => {
+    if (
+      state &&
+      category &&
+      subCategory &&
+      vehicleNumber.length >= 4
+    ) {
+      loadDuration();
+    } else {
+      setDurationOptions([]);
+      setDuration('');
+    }
+  }, [state, category, subCategory, vehicleNumber]);
 
   const loadStates = async () => {
     try {
       const response = await fetch(`${BASE_URL}states.php`);
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setStates(data);
-      } else {
-        setStates([]);
-      }
+
+      setStates(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.log('States Error:',error,);
+      console.log('States Error:', error);
     }
   };
-
-
-  /* =======================================================
-     LOAD CATEGORIES
-  ======================================================= */
 
   const loadCategories = async () => {
     try {
       const response = await fetch(`${BASE_URL}categories.php`);
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setCategories(data);
-      } else {
-        setCategories([]);
-      }
+
+      setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.log('Categories Error:', error, );
+      console.log('Categories Error:', error);
     }
   };
 
+  const loadSubCategory = async categoryId => {
+    if (!categoryId) {
+      setSubCategories([]);
+      return;
+    }
 
-  /* =======================================================
-     LOAD SUB CATEGORY
-  ======================================================= */
+    try {
+      const formData = new FormData();
+      formData.append('category_id', categoryId);
 
-const loadSubCategory = async categoryId => {
-  if (!categoryId) {
-    setSubCategories([]);
-    return;
-  }
+      const response = await fetch(
+        `${BASE_URL}sub_category_ajax.php`,
+        {
+          method: 'POST',
+          body: formData,
+        },
+      );
 
-  try {
-    const formData = new FormData();
-    formData.append('category_id', categoryId);
+      const data = await response.json();
 
-    const response = await fetch(
-      `${BASE_URL}sub_category_ajax.php`,
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
-
-    const data = await response.json();
-
-    if (Array.isArray(data)) {
-      setSubCategories(data);
-    } else {
+      setSubCategories(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.log('Sub Category Error:', error);
       setSubCategories([]);
     }
-  } catch (error) {
-    console.log('Sub Category Error:', error);
-    setSubCategories([]);
-  }
-};
+  };
 
-/* =======================================================
-   LOAD DURATION FROM API
-======================================================= */
-
-const loadDuration = async () => {
-  if (!state || !category || !subCategory || !vehicleNumber) {
-    setDurationOptions([]);
-    setDuration('');
-    return;
-  }
-
-  try {
-    const formData = new FormData();
-    formData.append('state', state);
-    formData.append('category', String(category));
-    formData.append('sub_category', String(subCategory));
-    formData.append('vehicleNumber',vehicleNumber.toUpperCase(),);
-    const response = await fetch(
-      `${BASE_URL}get_duration.php`,
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
-
-    const data = await response.json();
-    console.log('DURATION API:', data);
-    if (
-      data.status === true &&
-      Array.isArray(data.durations) &&
-      data.durations.length > 0
-    ) {
-      setDurationOptions(data.durations);
+  const loadDuration = async () => {
+    if (!state || !category || !subCategory || !vehicleNumber) {
+      setDurationOptions([]);
       setDuration('');
       return;
     }
-    setDurationOptions([]);
-    setDuration('');
-    Alert.alert(
-      'Duration Not Available',
-      'Duration not available for selected vehicle',
-    );
-  } catch (error) {
-    console.log('Duration API Error:', error);
-    setDurationOptions([]);
-    setDuration('');
-    Alert.alert(
-      'Error',
-      'Unable to load duration',
-    );
-  }
-};
-  /* =======================================================
-     CONDITIONS
-  ======================================================= */
 
-  const showChassis = state && vehicleNumber.substring(0, 2).toUpperCase() === state.toUpperCase();
+    try {
+      const formData = new FormData();
+
+      formData.append('state', state);
+      formData.append('category', String(category));
+      formData.append('sub_category', String(subCategory));
+      formData.append(
+        'vehicleNumber',
+        vehicleNumber.toUpperCase(),
+      );
+
+      const response = await fetch(
+        `${BASE_URL}get_duration.php`,
+        {
+          method: 'POST',
+          body: formData,
+        },
+      );
+
+      const data = await response.json();
+
+      console.log('DURATION API:', data);
+
+      if (
+        data.status === true &&
+        Array.isArray(data.durations) &&
+        data.durations.length > 0
+      ) {
+        setDurationOptions(data.durations);
+        setDuration('');
+        return;
+      }
+
+      setDurationOptions([]);
+      setDuration('');
+
+      Alert.alert(
+        t('durationNotAvailableTitle'),
+        t('durationNotAvailableMessage'),
+      );
+    } catch (error) {
+      console.log('Duration API Error:', error);
+
+      setDurationOptions([]);
+      setDuration('');
+
+      Alert.alert(
+        t('error'),
+        t('unableToLoadDuration'),
+      );
+    }
+  };
+
+  const showChassis =
+    state &&
+    vehicleNumber.substring(0, 2).toUpperCase() ===
+      state.toUpperCase();
+
   const normalizedState = state?.toUpperCase();
-  const showSeatAc = (normalizedState === 'UP' || normalizedState === 'UK') && ['3', '4' , '5', '6', '7', '8'].includes(String(subCategory));
 
-  /* =======================================================
-     DATE HELPERS
-  ======================================================= */
-
-const setEndOfDay = date => {
-  const newDate = new Date(date);
-  newDate.setHours(23, 59, 59, 999);
-  return newDate;
-};
-
-const calculateEndDate = (selectedDuration, selectedStart) => {
-  let date = new Date(selectedStart);
-
-  switch (selectedDuration) {
-    case 'Day':
-      date = new Date(
-        date.getTime() + 24 * 60 * 60 * 1000,
-      );
-      break;
-
-    case '3Day':
-      date = new Date(
-        date.getTime() + 3 * 24 * 60 * 60 * 1000,
-      );
-      break;
-
-    case '5Day':
-      date = new Date(
-        date.getTime() + 5 * 24 * 60 * 60 * 1000,
-      );
-      break;
-
-    case 'Weekly':
-      date.setDate(date.getDate() + 7);
-      date = setEndOfDay(date);
-      break;
-
-    case 'Month':
-      // Current month ka last day
-      date = new Date(
-        date.getFullYear(),
-        date.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-      break;
-
-    case 'Quarter': {
-      const year = date.getFullYear();
-      const month = date.getMonth(); // 0 = Jan, 11 = Dec
-
-      let endMonth;
-
-      // January - March
-      if (month <= 2) {
-        endMonth = 2;
-      }
-      // April - June
-      else if (month <= 5) {
-        endMonth = 5;
-      }
-      // July - September
-      else if (month <= 8) {
-        endMonth = 8;
-      }
-      // October - December
-      else {
-        endMonth = 11;
-      }
-
-      // Quarter ka last day
-      date = new Date(
-        year,
-        endMonth + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-
-      break;
-    }
-
-    case 'Half Year': {
-      const year = date.getFullYear();
-      const month = date.getMonth(); // 0 = Jan, 11 = Dec
-
-      let endMonth;
-
-      // January - June
-      if (month <= 5) {
-        endMonth = 5;
-      }
-      // July - December
-      else {
-        endMonth = 11;
-      }
-
-      // Half Year ka last day
-      date = new Date(
-        year,
-        endMonth + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-
-      break;
-    }
-
-    case 'Year': {
-      const year = date.getFullYear();
-
-      // Current year ka 31 December
-      date = new Date(
-        year,
-        11,
-        31,
-        23,
-        59,
-        59,
-        999,
-      );
-
-      break;
-    }
-
-    default:
-      break;
-  }
-
-  setEndDate(date);
-};
-const formatDate = date => {
-    return date.toLocaleDateString(
-      'en-IN',
-      {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      },
+  const showSeatAc =
+    (normalizedState === 'UP' || normalizedState === 'UK') &&
+    ['3', '4', '5', '6', '7', '8'].includes(
+      String(subCategory),
     );
-  };
-const formatTime = date => {
-    return date.toLocaleTimeString(
-      'en-IN',
-      {
-        hour: '2-digit',
-        minute: '2-digit',
-      },
-    );
+
+  const setEndOfDay = date => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);
+    return newDate;
   };
 
-  /* =======================================================
-     PAYMENT
-  ======================================================= */
-const goToPayment = () => {
-  if (
-    !phone ||
-    !vehicleNumber ||
-    !state ||
-    !category ||
-    !subCategory ||
-    !duration
-  ) {
-    Alert.alert(
-      'Required Fields',
-      'Please fill all required fields',
-    );
+  const calculateEndDate = (selectedDuration, selectedStart) => {
+    let date = new Date(selectedStart);
 
-    return;
-  }
+    switch (selectedDuration) {
+      case 'Day':
+        date = new Date(
+          date.getTime() + 24 * 60 * 60 * 1000,
+        );
+        break;
 
-  if (phone.length !== 10) {
-    Alert.alert(
-      'Invalid Mobile Number',
-      'Please enter a valid 10 digit mobile number',
-    );
+      case '3Day':
+        date = new Date(
+          date.getTime() + 3 * 24 * 60 * 60 * 1000,
+        );
+        break;
 
-    return;
-  }
+      case '5Day':
+        date = new Date(
+          date.getTime() + 5 * 24 * 60 * 60 * 1000,
+        );
+        break;
 
-  if (showChassis && chassisNumber.length !== 5) {
-    Alert.alert(
-      'Invalid Chassis Number',
-      'Please enter a valid 5 digit chassis number',
-    );
+      case 'Weekly':
+        date.setDate(date.getDate() + 7);
+        date = setEndOfDay(date);
+        break;
 
-    return;
-  }
+      case 'Month':
+        date = new Date(
+          date.getFullYear(),
+          date.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        );
+        break;
 
-  if (showSeatAc && (!noOfSeats || !acType)) {
-    Alert.alert(
-      'Required Fields',
-      'Please enter seats and AC type',
-    );
+      case 'Quarter': {
+        const year = date.getFullYear();
+        const month = date.getMonth();
 
-    return;
-  }
+        let endMonth;
 
-  navigation.navigate('PaymentScreen', {
-    phone_number: phone,
-    vehicle_number: vehicleNumber,
-    state: state,
-    chassis_number: chassisNumber,
-    category: category,
-    sub_category: subCategory,
-    duration: duration,
-    no_of_seats: noOfSeats,
-    ac_type: acType,
-    start_date: startDate.toISOString(),
-    end_date: endDate.toISOString(),
-  });
-};
-  /* =======================================================
-     UI
-  ======================================================= */
+        if (month <= 2) {
+          endMonth = 2;
+        } else if (month <= 5) {
+          endMonth = 5;
+        } else if (month <= 8) {
+          endMonth = 8;
+        } else {
+          endMonth = 11;
+        }
+
+        date = new Date(
+          year,
+          endMonth + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        );
+        break;
+      }
+
+      case 'Half Year': {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+
+        const endMonth = month <= 5 ? 5 : 11;
+
+        date = new Date(
+          year,
+          endMonth + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        );
+        break;
+      }
+
+      case 'Year': {
+        const year = date.getFullYear();
+
+        date = new Date(
+          year,
+          11,
+          31,
+          23,
+          59,
+          59,
+          999,
+        );
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    setEndDate(date);
+  };
+
+  const formatDate = date =>
+    date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+
+  const formatTime = date =>
+    date.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+  const goToPayment = () => {
+    if (
+      !phone ||
+      !vehicleNumber ||
+      !state ||
+      !category ||
+      !subCategory ||
+      !duration
+    ) {
+      Alert.alert(
+        t('requiredFields'),
+        t('fillRequiredFields'),
+      );
+      return;
+    }
+
+    if (phone.length !== 10) {
+      Alert.alert(
+        t('invalidMobileNumber'),
+        t('validMobileNumberMessage'),
+      );
+      return;
+    }
+
+    if (showChassis && chassisNumber.length !== 5) {
+      Alert.alert(
+        t('invalidChassisNumber'),
+        t('validChassisNumberMessage'),
+      );
+      return;
+    }
+
+    if (showSeatAc && (!noOfSeats || !acType)) {
+      Alert.alert(
+        t('requiredFields'),
+        t('enterSeatsAndAcType'),
+      );
+      return;
+    }
+
+    navigation.navigate('PaymentScreen', {
+      phone_number: phone,
+      vehicle_number: vehicleNumber,
+      state,
+      chassis_number: chassisNumber,
+      category,
+      sub_category: subCategory,
+      duration,
+      no_of_seats: noOfSeats,
+      ac_type: acType,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
+    });
+  };
+
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-    >
-
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={
-          Platform.OS === 'ios'
-            ? 'padding'
-            : undefined
-        }
-      >
-
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="always"
           keyboardDismissMode="none"
-          contentContainerStyle={
-            styles.scrollContent
-          }
-        >
-
-
-          {/* =================================================
-             NOTICE
-          ================================================= */}
+          contentContainerStyle={styles.scrollContent}>
 
           <View style={styles.noticeBox}>
-
             <View style={styles.noticeIcon}>
-
               <Ionicons
                 name="alert-circle-outline"
-                size={26}
+                size={25}
                 color="#D97706"
               />
-
             </View>
 
-
-            <View
-              style={
-                styles.noticeContent
-              }
-            >
-
-              <Text
-                style={
-                  styles.noticeTitle
-                }
-              >
-                Important Notice
+            <View style={{ flex: 1 }}>
+              <Text style={styles.noticeTitle}>
+                {t('importantNotice')}
               </Text>
 
-
-              <Text
-                style={
-                  styles.noticeText
-                }
-              >
-
-                किसी भी State Border को Enter करने से कम से कम{' '}
-
-                <Text
-                  style={
-                    styles.bold
-                  }
-                >
-                  30 मिनट पहले
-                </Text>{' '}
-
-                Tax Request भेजें।
-
+              <Text style={styles.noticeText}>
+                {t('borderTaxNotice')}
               </Text>
-
             </View>
-
           </View>
 
-
-          {/* =================================================
-             VEHICLE DETAILS
-          ================================================= */}
-
           <View style={styles.card}>
-
-
-            <View
-              style={
-                styles.sectionHeader
-              }
-            >
-
-              <View
-                style={
-                  styles.sectionIcon
-                }
-              >
-
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIcon}>
                 <Ionicons
                   name="car-outline"
                   size={22}
                   color="#EF5B25"
                 />
-
               </View>
-
 
               <View>
-
-                <Text
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Vehicle Details
+                <Text style={styles.sectionTitle}>
+                  {t('vehicleDetails')}
                 </Text>
 
-
-                <Text
-                  style={
-                    styles.sectionSubtitle
-                  }
-                >
-                  Enter your vehicle information
+                <Text style={styles.sectionSubtitle}>
+                  {t('enterVehicleInfo')}
                 </Text>
-
               </View>
-
             </View>
 
-
-            {/* MOBILE */}
-
             <Text style={styles.label}>
-
-              Mobile Number{' '}
-
-              <Text
-                style={
-                  styles.required
-                }
-              >
-                *
-              </Text>
-
+              {t('mobileNumber')}{' '}
+              <Text style={styles.required}>*</Text>
             </Text>
-
 
             <InputBox
               icon="phone-portrait-outline"
-              placeholder="Enter 10 digit mobile number"
+              placeholder={t('enterMobileNumber')}
               value={phone}
               onChangeText={setPhone}
               keyboardType="number-pad"
               inputMode="tel"
               maxLength={10}
-              autoCapitalize="none"
-              autoCorrect={false}
             />
 
-
-            {/* VEHICLE NUMBER */}
-
             <Text style={styles.label}>
-
-              Vehicle Number{' '}
-
-              <Text
-                style={
-                  styles.required
-                }
-              >
-                *
-              </Text>
-
+              {t('vehicleNumber')}{' '}
+              <Text style={styles.required}>*</Text>
             </Text>
-
 
             <InputBox
               icon="car-sport-outline"
-              placeholder="Example: PB01AB1234"
+              placeholder={t('vehicleNumberExample')}
               value={vehicleNumber}
               onChangeText={text => {
                 const cleanedText = text
                   .toUpperCase()
                   .replace(/[^A-Z0-9]/g, '');
+
                 setVehicleNumber(cleanedText);
               }}
               autoCapitalize="characters"
-              autoCorrect={false}
               maxLength={10}
             />
 
-            {/* REGISTRATION STATE */}
-
             <Text style={styles.label}>
-
-              Registration State{' '}
-
-              <Text
-                style={
-                  styles.required
-                }
-              >
-                *
-              </Text>
-
+              {t('registrationState')}{' '}
+              <Text style={styles.required}>*</Text>
             </Text>
-
 
             <SelectBox
               icon="map-outline"
               value={state}
               onValueChange={setState}
-              placeholder="Select State"
-            >
-
-              {/* NO SELECT STATE ITEM HERE */}
-
+              placeholder={t('selectState')}>
               {states.map(item => (
-
                 <Picker.Item
-                  key={
-                    String(item.id)
-                  }
+                  key={String(item.id)}
                   label={item.name}
                   value={item.code}
                 />
-
               ))}
-
             </SelectBox>
 
-
-            {/* CHASSIS */}
-
             {showChassis && (
-
               <>
-
-                <Text
-                  style={
-                    styles.label
-                  }
-                >
-                  Chassis Number
+                <Text style={styles.label}>
+                  {t('chassisNumber')}
                 </Text>
-
 
                 <InputBox
                   icon="barcode-outline"
-                  placeholder="Enter 5 digit chassis number"
+                  placeholder={t('enterChassisNumber')}
                   value={chassisNumber}
                   onChangeText={text => {
-                    const numericValue = text.replace(/[^0-9]/g, '');
-                    setChassisNumber(numericValue);
+                    setChassisNumber(
+                      text.replace(/[^0-9]/g, ''),
+                    );
                   }}
                   keyboardType="number-pad"
                   inputMode="numeric"
                   maxLength={5}
-                  autoCapitalize="none"
-                  autoCorrect={false}
                 />
-
               </>
-
             )}
-
           </View>
 
-
-          {/* =================================================
-             VEHICLE TYPE
-          ================================================= */}
-
           <View style={styles.card}>
-
-
-            <View
-              style={
-                styles.sectionHeader
-              }
-            >
-
-              <View
-                style={
-                  styles.sectionIcon
-                }
-              >
-
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIcon}>
                 <Ionicons
                   name="bus-outline"
                   size={22}
                   color="#EF5B25"
                 />
-
               </View>
-
 
               <View>
-
-                <Text
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Vehicle Type
+                <Text style={styles.sectionTitle}>
+                  {t('vehicleType')}
                 </Text>
 
-
-                <Text
-                  style={
-                    styles.sectionSubtitle
-                  }
-                >
-                  Select category and vehicle type
+                <Text style={styles.sectionSubtitle}>
+                  {t('selectCategoryAndType')}
                 </Text>
-
               </View>
-
             </View>
 
-
-            {/* CATEGORY */}
-
             <Text style={styles.label}>
-
-              Vehicle Category{' '}
-
-              <Text
-                style={
-                  styles.required
-                }
-              >
-                *
-              </Text>
-
+              {t('vehicleCategory')}{' '}
+              <Text style={styles.required}>*</Text>
             </Text>
-
 
             <SelectBox
               icon="car"
               value={category}
               onValueChange={value => {
-
                 setCategory(value);
-
                 setSubCategory('');
-
-                loadSubCategory(
-                  value,
-                );
-
+                loadSubCategory(value);
               }}
-              placeholder="Select Vehicle Category"
-            >
-
-              {/* NO SELECT VEHICLE CATEGORY ITEM */}
-
+              placeholder={t('selectVehicleCategory')}>
               {categories.map(item => (
-
                 <Picker.Item
-                  key={
-                    String(item.id)
-                  }
+                  key={String(item.id)}
                   label={item.name}
                   value={item.id}
                 />
-
               ))}
-
             </SelectBox>
 
-
-            {/* VEHICLE TYPE */}
-
             <Text style={styles.label}>
-
-              Vehicle Type{' '}
-
-              <Text
-                style={
-                  styles.required
-                }
-              >
-                *
-              </Text>
-
+              {t('vehicleType')}{' '}
+              <Text style={styles.required}>*</Text>
             </Text>
-
 
             <SelectBox
               icon="car"
               value={subCategory}
-              onValueChange={
-                setSubCategory
-              }
-              placeholder="Select Vehicle Type"
-            >
-
-              {/* NO SELECT VEHICLE TYPE ITEM */}
-
-              {subCategories.map(
-                item => (
-
-                  <Picker.Item
-                    key={
-                      String(item.id)
-                    }
-                    label={item.name}
-                    value={item.id}
-                  />
-
-                ),
-              )}
-
+              onValueChange={setSubCategory}
+              placeholder={t('selectVehicleType')}>
+              {subCategories.map(item => (
+                <Picker.Item
+                  key={String(item.id)}
+                  label={item.name}
+                  value={item.id}
+                />
+              ))}
             </SelectBox>
 
-
-            {/* UP / UK DETAILS */}
-
             {showSeatAc && (
-
-              <View
-                style={
-                  styles.extraVehicleBox
-                }
-              >
-
-                <View
-                  style={
-                    styles.extraTitleRow
-                  }
-                >
-
+              <View style={styles.extraVehicleBox}>
+                <View style={styles.extraTitleRow}>
                   <Ionicons
                     name="bus-outline"
                     size={21}
                     color="#EF5B25"
                   />
 
-
-                  <Text
-                    style={
-                      styles.extraTitle
-                    }
-                  >
-                    Additional Details
+                  <Text style={styles.extraTitle}>
+                    {t('additionalDetails')}
                   </Text>
-
                 </View>
 
-
-                {/* SEATS */}
-
-                <Text
-                  style={
-                    styles.label
-                  }
-                >
-                  Number of Seats
+                <Text style={styles.label}>
+                  {t('numberOfSeats')}
                 </Text>
-
 
                 <InputBox
                   icon="people-outline"
-                  placeholder="Enter number of seats"
+                  placeholder={t('enterNumberOfSeats')}
                   value={noOfSeats}
-                  onChangeText={
-                    setNoOfSeats
-                  }
+                  onChangeText={setNoOfSeats}
                   keyboardType="number-pad"
                   inputMode="numeric"
                   maxLength={3}
                 />
 
-
-                {/* AC */}
-
-                <Text
-                  style={
-                    styles.label
-                  }
-                >
-                  AC Type
+                <Text style={styles.label}>
+                  {t('acType')}
                 </Text>
-
 
                 <SelectBox
                   icon="snow"
                   value={acType}
-                  onValueChange={
-                    setAcType
-                  }
-                  placeholder="Select AC Type"
-                >
-
-                  {/* NO SELECT AC TYPE ITEM */}
-
+                  onValueChange={setAcType}
+                  placeholder={t('selectAcType')}>
                   <Picker.Item
-                    label="AC"
+                    label={t('ac')}
                     value="AC"
                   />
 
                   <Picker.Item
-                    label="Non AC"
+                    label={t('nonAc')}
                     value="Non AC"
                   />
-
                 </SelectBox>
-
               </View>
-
             )}
-
           </View>
 
-
-          {/* =================================================
-             TAX PERIOD
-          ================================================= */}
-
           <View style={styles.card}>
-
-
-            <View
-              style={
-                styles.sectionHeader
-              }
-            >
-
-              <View
-                style={
-                  styles.sectionIcon
-                }
-              >
-
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIcon}>
                 <Ionicons
                   name="calculator"
                   size={22}
                   color="#EF5B25"
                 />
-
               </View>
-
 
               <View>
-
-                <Text
-                  style={
-                    styles.sectionTitle
-                  }
-                >
-                  Tax Period
+                <Text style={styles.sectionTitle}>
+                  {t('taxPeriod')}
                 </Text>
 
-
-                <Text
-                  style={
-                    styles.sectionSubtitle
-                  }
-                >
-                  Choose your tax validity period
+                <Text style={styles.sectionSubtitle}>
+                  {t('chooseTaxPeriod')}
                 </Text>
-
               </View>
-
             </View>
 
-
-            {/* DURATION */}
-
             <Text style={styles.label}>
-
-              Duration{' '}
-
-              <Text
-                style={
-                  styles.required
-                }
-              >
-                *
-              </Text>
-
+              {t('duration')}{' '}
+              <Text style={styles.required}>*</Text>
             </Text>
-
 
             <SelectBox
               icon="time-outline"
               value={duration}
               onValueChange={value => {
-
                 setDuration(value);
-
-                calculateEndDate(
-                  value,
-                  startDate,
-                );
-
+                calculateEndDate(value, startDate);
               }}
-              placeholder="Select Duration"
-            >
+              placeholder={t('selectDuration')}>
+              {durationOptions.map((item, index) => {
+                let label = item;
 
-              {/* NO SELECT DURATION ITEM */}
+                switch (item) {
+                  case 'Day':
+                    label = t('day');
+                    break;
+                  case '3Day':
+                    label = t('threeDays');
+                    break;
+                  case '5Day':
+                    label = t('fiveDays');
+                    break;
+                  case 'Weekly':
+                    label = t('weekly');
+                    break;
+                  case 'Month':
+                    label = t('monthly');
+                    break;
+                  case 'Quarter':
+                    label = t('quarter');
+                    break;
+                  case 'Half Year':
+                    label = t('halfYear');
+                    break;
+                  case 'Year':
+                    label = t('yearly');
+                    break;
+                  default:
+                    label = item;
+                }
 
-
-{durationOptions.map((item, index) => {
-
-  let label = item;
-
-  switch (item) {
-    case 'Day':
-      label = 'Day';
-      break;
-
-    case '3Day':
-      label = '3 Days';
-      break;
-
-    case '5Day':
-      label = '5 Days';
-      break;
-
-    case 'Weekly':
-      label = 'Weekly';
-      break;
-
-    case 'Month':
-      label = 'Monthly';
-      break;
-
-    case 'Quarter':
-      label = 'Quarter';
-      break;
-
-    case 'Half Year':
-      label = 'Half Year';
-      break;
-
-    case 'Year':
-      label = 'Yearly';
-      break;
-
-    default:
-      label = item;
-  }
-
-  return (
-    <Picker.Item
-      key={`${item}-${index}`}
-      label={label}
-      value={item}
-    />
-  );
-})}
-
-
+                return (
+                  <Picker.Item
+                    key={`${item}-${index}`}
+                    label={label}
+                    value={item}
+                  />
+                );
+              })}
             </SelectBox>
 
-
-            {/* =================================================
-               DATES
-            ================================================= */}
-
             <View style={styles.dateRow}>
-
-
-              {/* START DATE */}
-
               <TouchableOpacity
-                style={
-                  styles.dateCard
-                }
-                onPress={() =>
-                  setOpenStart(true)
-                }
-              >
-
-                <View
-                  style={
-                    styles.dateIcon
-                  }
-                >
-
+                style={styles.dateCard}
+                onPress={() => setOpenStart(true)}>
+                <View style={styles.dateIcon}>
                   <Ionicons
                     name="calendar"
                     size={24}
                     color="#EF5B25"
                   />
-
                 </View>
 
-
-                <Text
-                  style={
-                    styles.dateLabel
-                  }
-                >
-                  START DATE
+                <Text style={styles.dateLabel}>
+                  {t('startDate')}
                 </Text>
 
-
-                <Text
-                  style={
-                    styles.dateValue
-                  }
-                >
-                  {formatDate(
-                    startDate,
-                  )}
+                <Text style={styles.dateValue}>
+                  {formatDate(startDate)}
                 </Text>
 
-
-                <Text
-                  style={
-                    styles.dateTime
-                  }
-                >
-                  {formatTime(
-                    startDate,
-                  )}
+                <Text style={styles.dateTime}>
+                  {formatTime(startDate)}
                 </Text>
-
               </TouchableOpacity>
 
-
-              {/* END DATE */}
-
               <TouchableOpacity
-                style={
-                  styles.dateCard
-                }
-                onPress={() =>
-                  setOpenEnd(true)
-                }
-              >
-
-                <View
-                  style={
-                    styles.dateIcon
-                  }
-                >
-
+                style={styles.dateCard}
+                onPress={() => setOpenEnd(true)}>
+                <View style={styles.dateIcon}>
                   <Ionicons
                     name="calendar"
                     size={24}
                     color="#16A34A"
                   />
-
                 </View>
 
-
-                <Text
-                  style={
-                    styles.dateLabel
-                  }
-                >
-                  END DATE
+                <Text style={styles.dateLabel}>
+                  {t('endDate')}
                 </Text>
 
-
-                <Text
-                  style={
-                    styles.dateValue
-                  }
-                >
-                  {formatDate(
-                    endDate,
-                  )}
+                <Text style={styles.dateValue}>
+                  {formatDate(endDate)}
                 </Text>
 
-
-                <Text
-                  style={
-                    styles.dateTime
-                  }
-                >
-                  {formatTime(
-                    endDate,
-                  )}
+                <Text style={styles.dateTime}>
+                  {formatTime(endDate)}
                 </Text>
-
               </TouchableOpacity>
-
             </View>
-
-
-            {/* START DATE PICKER */}
 
             <DatePicker
               modal
               open={openStart}
               date={startDate}
               mode="datetime"
-              minimumDate={
-                new Date()
-              }
+              minimumDate={new Date()}
               onConfirm={date => {
-
                 setOpenStart(false);
-
                 setStartDate(date);
 
                 if (duration) {
-
-                  calculateEndDate(
-                    duration,
-                    date,
-                  );
-
+                  calculateEndDate(duration, date);
                 }
-
               }}
-              onCancel={() =>
-                setOpenStart(false)
-              }
+              onCancel={() => setOpenStart(false)}
             />
-
-
-            {/* END DATE PICKER */}
 
             <DatePicker
               modal
@@ -1330,116 +827,55 @@ const goToPayment = () => {
               date={endDate}
               mode="datetime"
               onConfirm={date => {
-
                 setOpenEnd(false);
-
                 setEndDate(date);
-
               }}
-              onCancel={() =>
-                setOpenEnd(false)
-              }
+              onCancel={() => setOpenEnd(false)}
             />
-
           </View>
-
-
-          {/* =================================================
-             PAYMENT BUTTON
-          ================================================= */}
 
           <TouchableOpacity
             activeOpacity={0.85}
-            style={
-              styles.paymentButton
-            }
-            onPress={
-              goToPayment
-            }
-          >
-
-            <View
-              style={
-                styles.paymentIcon
-              }
-            >
-
+            style={styles.paymentButton}
+            onPress={goToPayment}>
+            <View style={styles.paymentIcon}>
               <Ionicons
                 name="shield-outline"
                 size={25}
                 color="#fff"
               />
-
             </View>
 
-
-            <View
-              style={
-                styles.paymentTextBox
-              }
-            >
-
-              <Text
-                style={
-                  styles.paymentTitle
-                }
-              >
-                Continue to Payment
+            <View style={styles.paymentTextBox}>
+              <Text style={styles.paymentTitle}>
+                {t('continueToPayment')}
               </Text>
 
-
-              <Text
-                style={
-                  styles.paymentSubtitle
-                }
-              >
-                Review details & proceed securely
+              <Text style={styles.paymentSubtitle}>
+                {t('reviewProceed')}
               </Text>
-
             </View>
-
 
             <Ionicons
               name="chevron-forward"
               size={26}
               color="#fff"
             />
-
           </TouchableOpacity>
 
-
-          {/* =================================================
-             SECURITY
-          ================================================= */}
-
-          <View
-            style={
-              styles.secureBox
-            }
-          >
-
+          <View style={styles.secureBox}>
             <Ionicons
               name="lock-closed-outline"
               size={18}
               color="#16A34A"
             />
 
-
-            <Text
-              style={
-                styles.secureText
-              }
-            >
-              Your information is securely processed
+            <Text style={styles.secureText}>
+              {t('secureProcessing')}
             </Text>
-
           </View>
-
-
         </ScrollView>
-
       </KeyboardAvoidingView>
-
     </SafeAreaView>
   );
 }
@@ -1604,7 +1040,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingLeft: 10,
     zIndex: 2,
-    pointerEvents: 'none',
     backgroundColor: '#F3F4F6',
   },
   placeholderText: {

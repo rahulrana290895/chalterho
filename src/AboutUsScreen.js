@@ -5,83 +5,69 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useTranslation} from 'react-i18next';
 
 export default function AboutUsScreen() {
+  const {t} = useTranslation();
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Who We Are</Text>
+          <Text style={styles.cardTitle}>{t('aboutWhoWeAre')}</Text>
 
-          <Text style={styles.text}>
-            Founded in 2018 by Mr. Kulvinder, our organization was
-            established with a vision to make transport-related services
-            easy, fast and accessible for every vehicle owner.
-          </Text>
+          <Text style={styles.text}>{t('aboutIntro1')}</Text>
 
-          <Text style={styles.text}>
-            We simplify road tax, permits, insurance, challans and
-            vehicle documentation through a customer-friendly process.
-          </Text>
+          <Text style={styles.text}>{t('aboutIntro2')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Our Purpose</Text>
+          <Text style={styles.cardTitle}>{t('aboutPurpose')}</Text>
 
-          <Text style={styles.quote}>
-            "To provide fast and reliable transport-related services in one place."
-          </Text>
+          <Text style={styles.quote}>{t('aboutPurposeQuote')}</Text>
 
-          <Text style={styles.text}>
-            We bridge the gap between vehicle owners and transport
-            services through digital convenience and professional support.
-          </Text>
+          <Text style={styles.text}>{t('aboutPurposeText')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Our Mission</Text>
+          <Text style={styles.cardTitle}>{t('aboutMission')}</Text>
 
-          <Text style={styles.text}>
-            To simplify road tax, insurance, challan, permit and vehicle
-            services with trusted assistance and quick support.
-          </Text>
+          <Text style={styles.text}>{t('aboutMissionText')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Our Vision</Text>
+          <Text style={styles.cardTitle}>{t('aboutVision')}</Text>
 
-          <Text style={styles.text}>
-            To become India's most trusted transport service platform
-            where every vehicle-related service is available from a
-            single platform.
-          </Text>
+          <Text style={styles.text}>{t('aboutVisionText')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Our Goals</Text>
+          <Text style={styles.cardTitle}>{t('aboutGoals')}</Text>
 
-          <Text style={styles.point}>🚗 Easy Vehicle Services</Text>
-          <Text style={styles.point}>⚡ Fast Processing</Text>
-          <Text style={styles.point}>📞 24/7 Customer Support</Text>
-          <Text style={styles.point}>🌐 One Platform Solution</Text>
+          <Text style={styles.point}>🚗 {t('aboutGoal1')}</Text>
+          <Text style={styles.point}>⚡ {t('aboutGoal2')}</Text>
+          <Text style={styles.point}>📞 {t('aboutGoal3')}</Text>
+          <Text style={styles.point}>🌐 {t('aboutGoal4')}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Why Choose Us?</Text>
+          <Text style={styles.cardTitle}>{t('aboutWhyChoose')}</Text>
 
-          <Text style={styles.point}>✔ Experienced Team Since 2018</Text>
-          <Text style={styles.point}>✔ Reliable & Transparent Services</Text>
-          <Text style={styles.point}>✔ Quick Documentation Support</Text>
-          <Text style={styles.point}>✔ Secure Process</Text>
-          <Text style={styles.point}>✔ Insurance & Permit Assistance</Text>
-          <Text style={styles.point}>✔ One-Stop Transport Solution</Text>
+          <Text style={styles.point}>✔ {t('aboutReason1')}</Text>
+          <Text style={styles.point}>✔ {t('aboutReason2')}</Text>
+          <Text style={styles.point}>✔ {t('aboutReason3')}</Text>
+          <Text style={styles.point}>✔ {t('aboutReason4')}</Text>
+          <Text style={styles.point}>✔ {t('aboutReason5')}</Text>
+          <Text style={styles.point}>✔ {t('aboutReason6')}</Text>
         </View>
 
         <View style={styles.disclaimerContainer}>
           <Text style={styles.disclaimerText}>
-            This App is not affiliated with any government authority.
+            {t('aboutDisclaimer')}
           </Text>
         </View>
 
@@ -94,6 +80,11 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#F4F6F9',
+  },
+
+  scrollContent: {
+    paddingTop: 15,
+    paddingBottom: 20,
   },
 
   header: {
@@ -136,6 +127,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#444',
     lineHeight: 24,
+    marginBottom: 8,
   },
 
   quote: {
@@ -143,26 +135,29 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#666',
     marginBottom: 10,
+    lineHeight: 24,
   },
 
   point: {
     fontSize: 15,
     color: '#333',
     marginBottom: 10,
+    lineHeight: 22,
   },
-    disclaimerContainer: {
-      backgroundColor: '#FFF3CD',
-      paddingVertical: 8,
-      paddingHorizontal: 15,
-      borderTopWidth: 1,
-      borderTopColor: '#FFE69C',
-    },
 
-    disclaimerText: {
-      fontSize: 12,
-      textAlign: 'center',
-      color: '#856404',
-      fontWeight: '500',
-    },
+  disclaimerContainer: {
+    backgroundColor: '#FFF3CD',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#FFE69C',
+  },
 
+  disclaimerText: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#856404',
+    fontWeight: '500',
+    lineHeight: 18,
+  },
 });

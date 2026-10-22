@@ -7,8 +7,10 @@ import {
   Linking,
   SafeAreaView,
 } from 'react-native';
-
+import Icon from 'react-native-vector-icons/FontAwesome';
+import {useTranslation} from 'react-i18next';
 export default function HelplineScreen() {
+ const {t} = useTranslation();
   const phoneNumber = '+919625065008';
   const email = 'info@chalterho.com';
 
@@ -28,9 +30,9 @@ export default function HelplineScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.heading}>Help & Support</Text>
+      <Text style={styles.heading}>{t('helpSupport')}</Text>
       <Text style={styles.subHeading}>
-        Contact our support team anytime.
+        {t('contactSupport')}
       </Text>
 
 
@@ -38,10 +40,8 @@ export default function HelplineScreen() {
         onPress={makeCall}>
         <Text style={styles.icon}>🕒</Text>
         <View>
-          <Text style={styles.title}>24X7</Text>
-          <Text style={styles.value}>
-            OPEN
-          </Text>
+         <Text style={styles.title}>24X7</Text>
+         <Text style={styles.value}>{t('open')}</Text>
         </View>
       </TouchableOpacity>
 
@@ -51,7 +51,7 @@ export default function HelplineScreen() {
         onPress={makeCall}>
         <Text style={styles.icon}>📞</Text>
         <View>
-          <Text style={styles.title}>Call Us</Text>
+         <Text style={styles.title}>{t('callUs')}</Text>
           <Text style={styles.value}>
             +91-9625065008
           </Text>
@@ -61,9 +61,14 @@ export default function HelplineScreen() {
       <TouchableOpacity
         style={styles.card}
         onPress={openWhatsApp}>
-        <Text style={styles.icon}>💬</Text>
+        <Icon
+          name="whatsapp"
+          size={32}
+          color="#25D366"
+          style={styles.icon}
+        />
         <View>
-          <Text style={styles.title}>WhatsApp</Text>
+         <Text style={styles.title}>{t('whatsapp')}</Text>
           <Text style={styles.value}>
             +91-9625065008
           </Text>
@@ -75,7 +80,7 @@ export default function HelplineScreen() {
         onPress={sendEmail}>
         <Text style={styles.icon}>✉️</Text>
         <View>
-          <Text style={styles.title}>Email</Text>
+          <Text style={styles.title}>{t('email')}</Text>
           <Text style={styles.value}>
             info@chalterho.com
           </Text>

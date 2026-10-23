@@ -26,7 +26,7 @@ import PaymentCompletedScreen from './src/PaymentCompletedScreen';
 import PaymentRejectedScreen from './src/PaymentRejectedScreen';
 import ReferEarnScreen from './src/ReferEarnScreen';
 import OTPVerificationScreen from './src/OTPVerificationScreen';
-
+import DrivingLicenceScreen from './src/DrivingLicenceScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 function MoreHeaderTitle() {
@@ -269,6 +269,11 @@ export default function App() {
               headerStyle: {backgroundColor: '#001433'},
               headerTintColor: '#fff',
             }}
+          />
+          <Stack.Screen
+            name="DrivingLicenceScreen"
+            component={DrivingLicenceScreen}
+            options={{headerShown: false}}
           />
         </Stack.Navigator>
       </NavigationContainer>

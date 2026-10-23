@@ -174,5 +174,12 @@
   "securePayment": "ਸੁਰੱਖਿਅਤ ਭੁਗਤਾਨ",
   "taxCalculationUnavailable": "ਟੈਕਸ ਦੀ ਗਣਨਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
   "contactUs": "ਸਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰੋ",
-  "processing": "ਕਾਰਵਾਈ ਜਾਰੀ ਹੈ..."
+  "processing": "ਕਾਰਵਾਈ ਜਾਰੀ ਹੈ...",
+  "drivingLicence": "ਡਰਾਈਵਿੰਗ ਲਾਇਸੈਂਸ",
+  "vehicleNo": "ਵਾਹਨ ਨੰਬਰ",
+  "state": "ਰਾਜ",
+  "duration": "ਮਿਆਦ",
+  "amount": "ਰਕਮ",
+  "status": "ਸਥਿਤੀ",
+  "completed": "ਮੁਕੰਮਲ"
 }

@@ -17,8 +17,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import {BASE_URL} from './config/config';
+import {useTranslation} from 'react-i18next';
 
 export default function TaxHistoryScreen() {
+  const {t} = useTranslation();
+
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -128,21 +131,21 @@ const openDocument = async fileName => {
     return (
       <View style={styles.card}>
         <View style={styles.row}>
-          <Text style={styles.label}>Vehicle No.</Text>
+          <Text style={styles.label}>{t('vehicleNo')}</Text>
           <Text style={styles.value}>
             {item.vehicle_number}
           </Text>
         </View>
 
         <View style={styles.row}>
-          <Text style={styles.label}>State</Text>
+          <Text style={styles.label}>{t('state')}</Text>
           <Text style={styles.value}>
             {item.state}
           </Text>
         </View>
 
         <View style={styles.row}>
-          <Text style={styles.label}>Duration</Text>
+         <Text style={styles.label}>{t('duration')}</Text>
           <Text style={styles.value}>
             {item.start_date?.substring(0, 10)} -{item.end_date?.substring(0, 10)}
           </Text>
@@ -150,14 +153,14 @@ const openDocument = async fileName => {
 
 
         <View style={styles.row}>
-          <Text style={styles.label}>Amount</Text>
+         <Text style={styles.label}>{t('amount')}</Text>
           <Text style={styles.amount}>
             ₹{total}
           </Text>
         </View>
 
         <View style={styles.row}>
-          <Text style={styles.label}>Status</Text>
+         <Text style={styles.label}>{t('status')}</Text>
 
             <Text
               style={[

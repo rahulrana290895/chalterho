@@ -174,5 +174,16 @@
   "securePayment": "Secure Payment",
   "taxCalculationUnavailable": "Tax Calculation Unavailable",
   "contactUs": "Contact Us",
-  "processing": "Processing..."
+  "processing": "Processing...",
+  "drivingLicence": "Driving Licence",
+  "contactForTaxAmount": "To Proceed Please Continue",
+  "unableToCalculateTax": " We Are Calculating Your Tax",
+  "taxCalculationUnavailable": "Tax Calculate",
+  "contactUs": "Payment",
+  "vehicleNo": "Vehicle No.",
+  "state": "State",
+  "duration": "Duration",
+  "amount": "Amount",
+  "status": "Status",
+  "completed": "Completed"
 }

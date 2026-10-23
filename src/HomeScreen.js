@@ -120,7 +120,6 @@ export default function HomeScreen({navigation}) {
       if (!uid) {
         return;
       }
-
       const response = await fetch(
         `${BASE_URL}get-balance.php?uid=${encodeURIComponent(uid)}`,
       );
@@ -151,10 +150,17 @@ export default function HomeScreen({navigation}) {
         image: 'https://chalterho.com/app-assets/img/services/tax.png',
         isStatic: true,
       };
+       const drivingLicenceService = {
+         id: 'driving_licence',
+         name: 'Driving Licence',
+         image: 'https://chalterho.com/app-assets/img/services/dl.png',
+         isStatic: true,
+         isDrivingLicence: true,
+       };
 
       const apiServices = Array.isArray(data) ? data : [];
 
-      setServices([vehicleTaxService, ...apiServices]);
+      setServices([vehicleTaxService,drivingLicenceService, ...apiServices]);
     } catch (error) {
       console.log('API Error:', error);
       setServices([
@@ -164,6 +170,12 @@ export default function HomeScreen({navigation}) {
           image: 'https://chalterho.com/app-assets/img/services/tax.png',
           isStatic: true,
         },
+                {
+                  id: 'driving_licence',
+                   name: 'Driving Licence',
+                    image: 'https://chalterho.com/app-assets/img/services/dl.png',
+                  isStatic: true,
+                },
       ]);
     } finally {
       setLoading(false);
@@ -187,15 +199,17 @@ export default function HomeScreen({navigation}) {
     <TouchableOpacity
       style={styles.serviceItem}
       activeOpacity={0.8}
-      onPress={() => {
-        if (item.isStatic) {
-          navigation.navigate('VehicleTexScreen');
-        } else {
-          navigation.navigate('ServiceDetailScreen', {
-            service: item,
-          });
-        }
-      }}>
+     onPress={() => {
+       if (item.isDrivingLicence) {
+         navigation.navigate('DrivingLicenceScreen');
+       } else if (item.isStatic) {
+         navigation.navigate('VehicleTexScreen');
+       } else {
+         navigation.navigate('ServiceDetailScreen', {
+           service: item,
+         });
+       }
+     }}>
       <Image
         source={{
           uri: item.isStatic

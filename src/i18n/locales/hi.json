@@ -134,7 +134,7 @@
   "vehicleType": "वाहन का प्रकार",
   "selectCategoryAndType": "श्रेणी और वाहन का प्रकार चुनें",
   "vehicleCategory": "वाहन श्रेणी",
-  "selectVehicleCategory": "वाहन श्रेणी चुनें",
+  "selectVehicleCategory": "वाहन श्रेणी चुनें"   ,
   "selectVehicleType": "वाहन का प्रकार चुनें",
   "additionalDetails": "अतिरिक्त जानकारी",
   "numberOfSeats": "सीटों की संख्या",
@@ -166,6 +166,13 @@
   "securePayment": "सुरक्षित भुगतान",
   "taxCalculationUnavailable": "टैक्स की गणना उपलब्ध नहीं है",
   "contactUs": "संपर्क करें",
-  "processing": "प्रक्रिया जारी है..."
+  "processing": "प्रक्रिया जारी है...",
+  "drivingLicence": "ड्राइविंग लाइसेंस",
+  "vehicleNo": "वाहन नंबर",
+  "state": "राज्य",
+  "duration": "अवधि",
+  "amount": "राशि",
+  "status": "स्थिति",
+  "completed": "पूरा हुआ"
 }
 

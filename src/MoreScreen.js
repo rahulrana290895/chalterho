@@ -19,7 +19,7 @@ const {t} = useTranslation();
     loadUserData();
   }, []);
 
-  const loadUserData = async () => {
+const loadUserData = async () => {
     try {
       const uid = await AsyncStorage.getItem('userId');
 

@@ -150,7 +150,15 @@ export default function PaymentScreen({route, navigation}) {
   };
 
   // This screen charges the road-tax amount returned by the API.
-  const payableAmount = roadTax === null ? 0 : roadTax;
+    const hasVehicleTax =
+      taxData?.taxAvailable === true &&
+      Number(taxData.total) > 0;
+
+    const payableAmount = hasVehicleTax
+      ? Number(taxData.total)
+      : roadTax !== null
+      ? Number(roadTax)
+      : 0;
 
   const createRazorpayOrder = async () => {
     if (loading) {
@@ -158,13 +166,6 @@ export default function PaymentScreen({route, navigation}) {
     }
 
     try {
-      if (roadTax === null) {
-        Alert.alert(
-          'Error',
-          'Road tax amount is not available. Please retry.',
-        );
-        return;
-      }
 
       if (payableAmount <= 0) {
         Alert.alert('Error', 'Invalid payment amount.');
@@ -254,6 +255,7 @@ export default function PaymentScreen({route, navigation}) {
 
           const formData = new URLSearchParams();
 
+
           formData.append(
             'razorpay_payment_id',
             data.razorpay_payment_id,
@@ -312,12 +314,10 @@ export default function PaymentScreen({route, navigation}) {
             'service_fees',
             String(taxData?.service_fees || 0),
           );
+
           formData.append('payable', String(payableAmount));
-          formData.append(
-            'same_state_road_tax',
-            String(payableAmount),
-          );
-          formData.append('payment_type', 'service_charge');
+          formData.append('payment_type',hasVehicleTax ? 'tax' : 'request_tax');
+
           const response = await fetch(
             `${BASE_URL}verify-payment.php`,
             {
@@ -390,84 +390,193 @@ export default function PaymentScreen({route, navigation}) {
   };
 
   return (
-    <SafeAreaView
+<SafeAreaView
       style={styles.safeArea}
-      edges={['top', 'bottom']}
-    >
+      edges={['top', 'bottom']}>
+
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-      >
+        contentContainerStyle={
+          styles.contentContainer
+        }>
+
+        {/* ================================
+            HEADING
+        ================================= */}
+
         <Text style={styles.heading}>
-          {t('paymentDetails')}
+          Payment Details
         </Text>
 
-        <View style={styles.card}>
-          <View style={styles.taxIconCircle}>
-            <Text style={styles.taxIcon}>₹</Text>
-          </View>
+        {/* ================================
+            TAX DETAILS
+        ================================= */}
 
-          <Text style={styles.taxNotAvailableTitle}>
-           Tax Calculate
-          </Text>
+        {taxData && taxData.taxAvailable === true && (
+          <View style={styles.card}>
 
-          {chargesLoading ? (
-            <ActivityIndicator
-              size="small"
-              color="#ff4500"
-            />
-          ) : roadTax !== null ? (
-            <>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>
-                 We Are Calculating Your Tax
-                </Text>
+            <Text style={styles.title}>
+              Tax Details
+            </Text>
 
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.payableBox}>
-                <Text style={styles.payableLabel}>
-                  {t('payableAmount')}
-                </Text>
-                <Text style={styles.payableAmount}>
-                  ₹{payableAmount}
-                </Text>
-              </View>
-            </>
-          ) : (
-            <TouchableOpacity onPress={getRoadTax}>
-              <Text style={styles.contactButtonText}>
-                Unable to load amount. Tap to retry.
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>
+                Tax
               </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+
+              <Text style={styles.priceValue}>
+                ₹{Number(taxData.amount || 0)}
+              </Text>
+            </View>
+
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>
+                Service Fees
+              </Text>
+
+              <Text style={styles.priceValue}>
+                ₹
+                {Number(
+                  taxData.service_fees || 0,
+                )}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>
+                Sub Total
+              </Text>
+
+              <Text style={styles.priceValue}>
+                ₹
+                {Number(
+                  taxData.total || 0,
+                )}
+              </Text>
+            </View>
+
+            {/* WALLET */}
+
+            {walletBalance > 50 && (
+              <View style={styles.walletBox}>
+
+                <View>
+                  <Text style={styles.walletTitle}>
+                    Wallet Balance
+                  </Text>
+
+                  <Text style={styles.walletText}>
+                    ₹{walletBalance}
+                  </Text>
+                </View>
+
+                <Text style={styles.walletApplied}>
+                  Applied
+                </Text>
+
+              </View>
+            )}
+
+            {/* PAYABLE */}
+
+            <View style={styles.payableBox}>
+
+              <Text style={styles.payableLabel}>
+                Payable Amount
+              </Text>
+
+              <Text style={styles.payableAmount}>
+                ₹{payableAmount}
+              </Text>
+
+            </View>
+
+          </View>
+        )}
+
+        {taxData?.taxAvailable === false && (
+          <View style={styles.card}>
+            <Text style={styles.taxNotAvailableTitle}>
+              Vehicle Tax Not Available
+            </Text>
+
+            {roadTax !== null && roadTax > 0 ? (
+              <>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>
+                    Road Tax Charges
+                  </Text>
+                  <Text style={styles.priceValue}>
+                    ₹{roadTax}
+                  </Text>
+                </View>
+
+                <View style={styles.payableBox}>
+                  <Text style={styles.payableLabel}>
+                    Payable Amount
+                  </Text>
+
+                  <Text style={styles.payableAmount}>
+                    ₹{payableAmount}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <Text style={styles.taxNotAvailableText}>
+                Road Tax amount is not available.
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* ================================
+            PAYMENT INFORMATION
+        ================================= */}
 
         <View style={styles.card}>
+
           <Text style={styles.title}>
-            {t('securePayment')}
+            Secure Payment
           </Text>
 
           <Text style={styles.infoText}>
-            {t('securePaymentInfo')}
+            Pay securely using Razorpay.
+            You can choose an available payment
+            method such as UPI, Card or Net Banking
+            on the Razorpay payment screen.
           </Text>
 
           <View style={styles.secureBox}>
-            <Text style={styles.secureIcon}>🔒</Text>
+
+            <Text style={styles.secureIcon}>
+              🔒
+            </Text>
+
             <View style={styles.secureContent}>
+
               <Text style={styles.secureTitle}>
-                {t('securePayment')}
+                Secure Payment
               </Text>
+
               <Text style={styles.secureText}>
-                {t('paymentProcessedSecurely')}
+                Your payment is securely processed
+                through Razorpay.
               </Text>
+
             </View>
+
           </View>
+
         </View>
 
-        {!chargesLoading && roadTax !== null && roadTax > 0 && (
+        {/* ================================
+            PAY BUTTON
+        ================================= */}
+
+        {/* PAY BUTTON */}
+        {!chargesLoading && payableAmount > 0 && (
           <TouchableOpacity
             style={[
               styles.payBtn,
@@ -477,17 +586,15 @@ export default function PaymentScreen({route, navigation}) {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator
-                size="small"
-                color="#fff"
-              />
+              <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={styles.payText}>
-                {t('pay')} ₹{payableAmount}
+                Pay ₹{payableAmount}
               </Text>
             )}
           </TouchableOpacity>
         )}
+
       </ScrollView>
     </SafeAreaView>
   );

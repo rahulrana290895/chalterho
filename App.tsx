@@ -27,6 +27,12 @@ import PaymentRejectedScreen from './src/PaymentRejectedScreen';
 import ReferEarnScreen from './src/ReferEarnScreen';
 import OTPVerificationScreen from './src/OTPVerificationScreen';
 import DrivingLicenceScreen from './src/DrivingLicenceScreen';
+import NotificationScreen from './src/NotificationScreen';
+import VehiclePlansScreen from './src/VehiclePlansScreen';
+import PlanPaymentScreen from './src/PlanPaymentScreen';
+import PlanPaymentGatewayScreen from './src/PlanPaymentGatewayScreen';
+
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 function MoreHeaderTitle() {
@@ -275,6 +281,49 @@ export default function App() {
             component={DrivingLicenceScreen}
             options={{headerShown: false}}
           />
+
+          <Stack.Screen
+            name="NotificationScreen"
+            component={NotificationScreen}
+            options={{
+              headerTitle: 'Notification',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+
+          <Stack.Screen
+            name="VehiclePlansScreen"
+            component={VehiclePlansScreen}
+            options={{
+              headerTitle: 'Vehicle Plans',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+
+          <Stack.Screen
+            name="PlanPaymentScreen"
+            component={PlanPaymentScreen}
+            options={{
+              headerTitle: 'Plan Payment',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+
+          <Stack.Screen
+            name="PlanPaymentGatewayScreen"
+            component={PlanPaymentGatewayScreen}
+            options={{
+              headerTitle: 'Payment',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+
+
+
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

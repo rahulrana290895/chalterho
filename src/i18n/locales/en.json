@@ -185,5 +185,7 @@
   "duration": "Duration",
   "amount": "Amount",
   "status": "Status",
-  "completed": "Completed"
+  "completed": "Completed",
+  "day" : "Day",
+  "month" : "Month"
 }

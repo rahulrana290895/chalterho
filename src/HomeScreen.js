@@ -304,6 +304,18 @@ export default function HomeScreen({navigation}) {
               )}
             </View>
 
+            {/* Notification Button */}
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={() => navigation.navigate('NotificationScreen')}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={25}
+                color="#000000"
+              />
+            </TouchableOpacity>
             {/* Existing menu */}
             <TouchableOpacity
               style={styles.menuButton}
@@ -583,5 +595,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     marginRight: 10,
+  },
+  notificationButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    marginRight: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

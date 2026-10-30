@@ -26,12 +26,14 @@ import PaymentCompletedScreen from './src/PaymentCompletedScreen';
 import PaymentRejectedScreen from './src/PaymentRejectedScreen';
 import ReferEarnScreen from './src/ReferEarnScreen';
 import OTPVerificationScreen from './src/OTPVerificationScreen';
-import DrivingLicenceScreen from './src/DrivingLicenceScreen';
 import NotificationScreen from './src/NotificationScreen';
 import VehiclePlansScreen from './src/VehiclePlansScreen';
 import PlanPaymentScreen from './src/PlanPaymentScreen';
 import PlanPaymentGatewayScreen from './src/PlanPaymentGatewayScreen';
-
+import DrivingLicenceScreen from './src/DrivingLicenceScreen';
+import DrivingLicencePaymentScreen from './src/DrivingLicencePaymentScreen';
+import RCDownloadScreen from './src/RCDownloadScreen';
+import RCPaymentScreen from './src/RCPaymentScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -276,11 +278,6 @@ export default function App() {
               headerTintColor: '#fff',
             }}
           />
-          <Stack.Screen
-            name="DrivingLicenceScreen"
-            component={DrivingLicenceScreen}
-            options={{headerShown: false}}
-          />
 
           <Stack.Screen
             name="NotificationScreen"
@@ -322,7 +319,43 @@ export default function App() {
             }}
           />
 
+          <Stack.Screen
+            name="DrivingLicenceScreen"
+            component={DrivingLicenceScreen}
+            options={{
+              headerTitle: 'Driving Licence',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+          <Stack.Screen
+            name="DrivingLicencePaymentScreen"
+            component={DrivingLicencePaymentScreen}
+            options={{
+              headerTitle: 'Driving Licence',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
 
+          <Stack.Screen
+            name="RCDownloadScreen"
+            component={RCDownloadScreen}
+            options={{
+              headerTitle: 'RC Download',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+          <Stack.Screen
+            name="RCPaymentScreen"
+            component={RCPaymentScreen}
+            options={{
+              headerTitle: 'RC Download',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
 
         </Stack.Navigator>
       </NavigationContainer>

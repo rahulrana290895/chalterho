@@ -157,10 +157,17 @@ export default function HomeScreen({navigation}) {
          isStatic: true,
          isDrivingLicence: true,
        };
+       const rcDownloadService = {
+         id: 'rc_download',
+         name: 'RC Download',
+         image: 'https://chalterho.com/app-assets/img/services/rc.png',
+         isStatic: true,
+         isRCDownload: true,
+       };
 
       const apiServices = Array.isArray(data) ? data : [];
 
-      setServices([vehicleTaxService,drivingLicenceService, ...apiServices]);
+      setServices([vehicleTaxService,drivingLicenceService,rcDownloadService, ...apiServices]);
     } catch (error) {
       console.log('API Error:', error);
       setServices([
@@ -170,12 +177,19 @@ export default function HomeScreen({navigation}) {
           image: 'https://chalterho.com/app-assets/img/services/tax.png',
           isStatic: true,
         },
-                {
-                  id: 'driving_licence',
-                   name: 'Driving Licence',
-                    image: 'https://chalterho.com/app-assets/img/services/dl.png',
-                  isStatic: true,
-                },
+        {
+          id: 'driving_licence',
+           name: 'Driving Licence',
+            image: 'https://chalterho.com/app-assets/img/services/dl.png',
+          isStatic: true,
+        },
+        {
+          id: 'rc_download',
+          name: 'RC Download',
+          image: 'https://chalterho.com/app-assets/img/services/rc.png',
+          isStatic: true,
+          isRCDownload: true,
+        },
       ]);
     } finally {
       setLoading(false);
@@ -199,17 +213,19 @@ export default function HomeScreen({navigation}) {
     <TouchableOpacity
       style={styles.serviceItem}
       activeOpacity={0.8}
-     onPress={() => {
-       if (item.isDrivingLicence) {
-         navigation.navigate('DrivingLicenceScreen');
-       } else if (item.isStatic) {
-         navigation.navigate('VehicleTexScreen');
-       } else {
-         navigation.navigate('ServiceDetailScreen', {
-           service: item,
-         });
-       }
-     }}>
+        onPress={() => {
+          if (item.isDrivingLicence) {
+            navigation.navigate('DrivingLicenceScreen');
+          } else if (item.isRCDownload) {
+            navigation.navigate('RCDownloadScreen');
+          } else if (item.isStatic) {
+            navigation.navigate('VehicleTexScreen');
+          } else {
+            navigation.navigate('ServiceDetailScreen', {
+              service: item,
+            });
+          }
+        }}>
       <Image
         source={{
           uri: item.isStatic

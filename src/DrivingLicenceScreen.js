@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -9,81 +9,355 @@ import {
   Alert,
   Keyboard,
   ScrollView,
+  ActivityIndicator,
+  Linking,
+  RefreshControl,
 } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {BASE_URL} from './config/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 export default function DrivingLicenceScreen({navigation}) {
+  const [activeTab, setActiveTab] = useState('my');
+
   const [dlNumber, setDlNumber] = useState('');
+  const [dob, setDob] = useState('');
 
-  const fetchDetails = () => {
-    Keyboard.dismiss();
+  const [licences, setLicences] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-    const number = dlNumber.trim().toUpperCase();
+const [userId, setUserId] = useState(null);
 
-    if (!number) {
-      Alert.alert('Required', 'Please enter your Driving Licence Number.');
+useEffect(() => {
+  const getUserId = async () => {
+    try {
+      const storedUserId = await AsyncStorage.getItem('userId');
+      setUserId(storedUserId);
+    } catch (error) {
+      console.log('Error getting user ID:', error);
+    }
+  };
+
+  getUserId();
+}, []);
+
+useEffect(() => {
+  if (activeTab === 'my' && userId) {
+    fetchMyLicences();
+  }
+}, [activeTab, userId]);
+
+  // Database mein saved licences ki list
+  const fetchMyLicences = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const response = await fetch(
+        `${BASE_URL}driving_licences_list.php?user_id=${userId}`,
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        setLicences(Array.isArray(result.data) ? result.data : []);
+      } else {
+        setLicences([]);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to load saved driving licences.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // DL number + DOB se licence search
+const searchLicence = async () => {
+  Keyboard.dismiss();
+
+  const number = dlNumber.trim().toUpperCase();
+  const birthDate = dob.trim();
+
+  if (!number) {
+    Alert.alert('Required', 'Please enter your DL number.');
+    return;
+  }
+
+  if (!/^\d{2}-\d{2}-\d{4}$/.test(birthDate)) {
+    Alert.alert('Required', 'DOB DD-MM-YYYY format mein enter karein.');
+    return;
+  }
+
+  navigation.navigate('DrivingLicencePaymentScreen', {
+    dlNumber: number,
+    dob: birthDate,
+  });
+};
+
+  // Saved licence ka PDF/download URL open karein
+
+const downloadLicence = async item => {
+  try {
+    // PDF URL directly database se aayega
+    const pdfUrl = item.pdf_url || item.download_url;
+
+    if (!pdfUrl) {
+      Alert.alert(
+        'PDF Not Available',
+        'Is driving licence ka PDF URL database mein nahi mila.',
+      );
       return;
     }
 
-    navigation.navigate('DrivingLicenceDetailsScreen', {
-      dlNumber: number,
-    });
-  };
+    if (!/^https?:\/\//i.test(pdfUrl)) {
+      Alert.alert('Error', 'PDF download URL invalid hai.');
+      return;
+    }
+
+    const safeNumber = String(
+      item.license_number || 'DrivingLicence',
+    ).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    const fileName = `DrivingLicence_${safeNumber}_${Date.now()}.pdf`;
+
+    const filePath =
+      `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
+
+    Alert.alert(
+      'Download Started',
+      'Aapka Driving Licence PDF download ho raha hai.',
+    );
+
+    const result = await ReactNativeBlobUtil.config({
+      path: filePath,
+      fileCache: false,
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        notification: true,
+        title: fileName,
+        description: 'Downloading Driving Licence PDF',
+        mime: 'application/pdf',
+        mediaScannable: false,
+        path: filePath,
+      },
+    }).fetch('GET', pdfUrl);
+
+    const status = result.info().status;
+
+    if (status >= 200 && status < 300) {
+      Alert.alert(
+        'Download Successful',
+      );
+    } else {
+      Alert.alert(
+        'Download Failed',
+      );
+    }
+  } catch (error) {
+    console.log('Licence PDF download error:', error);
+
+    Alert.alert(
+      'Download Error',
+      error?.message || 'PDF download nahi ho payi.',
+    );
+  }
+};
+
+
+  const renderLicenceCard = item => (
+    <View style={styles.licenceCard} key={String(item.id)}>
+      <View style={styles.cardTop}>
+        <View style={styles.smallIcon}>
+          <Ionicons name="card-outline" size={25} color="#173F70" />
+        </View>
+
+        <View style={styles.cardHeading}>
+          <Text style={styles.licenceLabel}>DRIVING LICENCE</Text>
+          <Text style={styles.licenceNumber}>
+            {item.license_number || 'N/A'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.cardDivider} />
+
+      <Text style={styles.detailLabel}>Name</Text>
+      <Text style={styles.detailValue}>{item.name || 'N/A'}</Text>
+
+      <Text style={styles.detailLabel}>Father / Husband Name</Text>
+      <Text style={styles.detailValue}>
+        {item.father_or_husband_name || 'N/A'}
+      </Text>
+
+      <View style={styles.dobRow}>
+        <View style={{flex: 1}}>
+          <Text style={styles.detailLabel}>Date of Birth</Text>
+          <Text style={styles.detailValue}>
+            {item.dob ? String(item.dob).slice(0, 10) : 'N/A'}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.downloadButton}
+          activeOpacity={0.85}
+          onPress={() => downloadLicence(item)}>
+          <Ionicons name="download-outline" size={19} color="#FFFFFF" />
+          <Text style={styles.downloadText}>Download</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
 
-      <View style={styles.header}>
+
+      {/* Two tabs */}
+      <View style={styles.tabContainer}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#17365D" />
+          style={[styles.tab, activeTab === 'my' && styles.activeTab]}
+          onPress={() => setActiveTab('my')}>
+          <Ionicons
+            name="documents-outline"
+            size={19}
+            color={activeTab === 'my' ? '#FFFFFF' : '#526780'}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'my' && styles.activeTabText,
+            ]}>
+            My Licences
+          </Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Driving License Download</Text>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'search' && styles.activeTab]}
+          onPress={() => setActiveTab('search')}>
+          <Ionicons
+            name="search-outline"
+            size={19}
+            color={activeTab === 'search' ? '#FFFFFF' : '#526780'}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'search' && styles.activeTabText,
+            ]}>
+            Search Licence
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}>
-        <View style={styles.card}>
-          <View style={styles.illustration}>
-            <View style={styles.licenseIcon}>
-              <Ionicons name="card-outline" size={65} color="#173F70" />
-              <Ionicons
-                name="car-sport"
-                size={36}
-                color="#FF6818"
-                style={styles.carIcon}
-              />
+      {activeTab === 'my' ? (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => fetchMyLicences(true)}
+            />
+          }>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>My Driving Licences</Text>
+              <Text style={styles.sectionSubtitle}>
+                Your saved licence records
+              </Text>
+            </View>
+
+            <View style={styles.countBadge}>
+              <Text style={styles.countText}>{licences.length}</Text>
             </View>
           </View>
 
-          <Text style={styles.title}>Get Your Driving License</Text>
+          {loading ? (
+            <ActivityIndicator
+              size="large"
+              color="#173F70"
+              style={{marginTop: 40}}
+            />
+          ) : licences.length > 0 ? (
+            licences.map(renderLicenceCard)
+          ) : (
+            <View style={styles.emptyBox}>
+              <Ionicons name="document-text-outline" size={52} color="#A5B4C7" />
+              <Text style={styles.emptyTitle}>No Licences Found</Text>
+              <Text style={styles.emptySubtitle}>
+                Search your driving licence and save it to view it here.
+              </Text>
 
-          <Text style={styles.subtitle}>
-            Enter your DL number to view your driving licence details.
-          </Text>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => setActiveTab('search')}>
+                <Text style={styles.emptyButtonText}>Search Licence</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      ) : (
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}>
+          <View style={styles.searchCard}>
+            <View style={styles.illustration}>
+              <View style={styles.licenseIcon}>
+                <Ionicons name="card-outline" size={62} color="#173F70" />
+                <Ionicons
+                  name="car-sport"
+                  size={34}
+                  color="#FF6818"
+                  style={styles.carIcon}
+                />
+              </View>
+            </View>
 
-          <View style={styles.formBox}>
-            <Text style={styles.label}>Driving License Number</Text>
+            <Text style={styles.title}>Search Driving Licence</Text>
+            <Text style={styles.subtitle}>
+              Enter your licence number and date of birth to fetch your
+              licence details.
+            </Text>
 
+            <Text style={styles.label}>Driving Licence Number</Text>
             <View style={styles.inputContainer}>
-              <Ionicons name="card" size={20} color="#173F70" />
-
+              <Ionicons name="card-outline" size={20} color="#173F70" />
               <TextInput
                 style={styles.input}
-                placeholder="Enter DL number (e.g. RJ14 20200012345)"
+                placeholder="Enter DL number"
                 placeholderTextColor="#8492A6"
                 value={dlNumber}
                 onChangeText={setDlNumber}
                 autoCapitalize="characters"
                 autoCorrect={false}
                 maxLength={25}
+                returnKeyType="next"
+              />
+            </View>
+
+            <Text style={[styles.label, {marginTop: 18}]}>
+              Date of Birth
+            </Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="calendar-outline" size={20} color="#173F70" />
+              <TextInput
+                style={styles.input}
+                placeholder="DD-MM-YYYY"
+                placeholderTextColor="#8492A6"
+                value={dob}
+                onChangeText={setDob}
+                keyboardType="numeric"
+                maxLength={10}
                 returnKeyType="done"
-                onSubmitEditing={fetchDetails}
+                onSubmitEditing={searchLicence}
               />
             </View>
 
@@ -94,37 +368,48 @@ export default function DrivingLicenceScreen({navigation}) {
                 color="#0873B9"
               />
               <Text style={styles.infoText}>
-                Enter your correct licence number. Additional details require
-                a verified driving licence API.
+                Your details will be verified by the configured backend/API.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, searching && {opacity: 0.7}]}
+              activeOpacity={0.85}
+              disabled={searching}
+              onPress={searchLicence}>
+              {searching ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.buttonText}>Fetch Details</Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.securityRow}>
+              <Ionicons
+                name="shield-checkmark"
+                size={17}
+                color="#218653"
+              />
+              <Text style={styles.securityText}>
+                Your information should be handled securely.
               </Text>
             </View>
           </View>
-
-          <TouchableOpacity
-            style={styles.button}
-            activeOpacity={0.85}
-            onPress={fetchDetails}>
-            <Text style={styles.buttonText}>Fetch Details</Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <View style={styles.securityRow}>
-            <Ionicons name="shield-checkmark" size={17} color="#218653" />
-            <Text style={styles.securityText}>
-              Your information should be handled securely.
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F8FC',
-  },
+  container: {flex: 1, backgroundColor: '#F5F8FC'},
   header: {
     height: 56,
     backgroundColor: '#FFFFFF',
@@ -133,35 +418,137 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     elevation: 2,
   },
-  backButton: {
-    padding: 5,
-    marginRight: 10,
+  backButton: {padding: 5, marginRight: 10},
+  headerTitle: {fontSize: 17, fontWeight: '700', color: '#17365D', flex: 1},
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 10,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#17365D',
+  tab: {
     flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#EEF2F7',
+    gap: 7,
   },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 14,
+  activeTab: {backgroundColor: '#173F70'},
+  tabText: {fontSize: 13, fontWeight: '700', color: '#526780'},
+  activeTabText: {color: '#FFFFFF'},
+  scrollContent: {flexGrow: 1, padding: 14, paddingBottom: 30},
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
   },
-  card: {
+  sectionTitle: {fontSize: 19, fontWeight: '800', color: '#17365D'},
+  sectionSubtitle: {fontSize: 12, color: '#718198', marginTop: 4},
+  countBadge: {
+    minWidth: 34,
+    height: 34,
+    paddingHorizontal: 8,
+    borderRadius: 17,
+    backgroundColor: '#E5EEFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: {fontWeight: '800', color: '#173F70'},
+  licenceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 15,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E3EAF3',
+    elevation: 1,
+  },
+  cardTop: {flexDirection: 'row', alignItems: 'center'},
+  smallIcon: {
+    height: 48,
+    width: 48,
+    borderRadius: 12,
+    backgroundColor: '#EEF5FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardHeading: {flex: 1, marginLeft: 12},
+  licenceLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#7A8AA0',
+    letterSpacing: 0.7,
+  },
+  licenceNumber: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#17365D',
+    marginTop: 4,
+  },
+  cardDivider: {height: 1, backgroundColor: '#E8EDF4', marginVertical: 14},
+  detailLabel: {fontSize: 11, color: '#7A8AA0', marginTop: 7},
+  detailValue: {
+    fontSize: 14,
+    color: '#243B56',
+    fontWeight: '600',
+    marginTop: 3,
+  },
+  dobRow: {flexDirection: 'row', alignItems: 'flex-end', marginTop: 6},
+  downloadButton: {
+    backgroundColor: '#FF6818',
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  downloadText: {color: '#FFFFFF', fontSize: 12, fontWeight: '800'},
+  emptyBox: {
+    marginTop: 40,
+    alignItems: 'center',
+    padding: 22,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#17365D',
+    marginTop: 12,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    color: '#718198',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginTop: 7,
+  },
+  emptyButton: {
+    marginTop: 18,
+    backgroundColor: '#173F70',
+    borderRadius: 9,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+  },
+  emptyButtonText: {color: '#FFFFFF', fontWeight: '700'},
+  searchCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E5EDF6',
   },
-  illustration: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-  },
+  illustration: {alignItems: 'center', justifyContent: 'center', paddingVertical: 12},
   licenseIcon: {
-    width: 140,
-    height: 120,
+    width: 130,
+    height: 110,
     backgroundColor: '#EEF5FF',
     borderRadius: 24,
     alignItems: 'center',
@@ -170,17 +557,17 @@ const styles = StyleSheet.create({
   },
   carIcon: {
     position: 'absolute',
-    right: 8,
-    bottom: 8,
+    right: 5,
+    bottom: 5,
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
   },
   title: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '800',
     color: '#17365D',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
   subtitle: {
     fontSize: 13,
@@ -189,12 +576,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 8,
     marginBottom: 24,
-  },
-  formBox: {
-    borderWidth: 1,
-    borderColor: '#E0E9F3',
-    borderRadius: 12,
-    padding: 12,
   },
   label: {
     color: '#17365D',
@@ -215,7 +596,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 9,
     color: '#172B45',
-    fontSize: 12,
+    fontSize: 13,
     paddingVertical: 9,
   },
   infoBox: {
@@ -224,7 +605,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAF5FF',
     borderRadius: 8,
     padding: 10,
-    marginTop: 14,
+    marginTop: 16,
   },
   infoText: {
     flex: 1,
@@ -243,20 +624,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-  },
+  buttonText: {color: '#FFFFFF', fontSize: 15, fontWeight: '800'},
   securityRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 18,
   },
-  securityText: {
-    color: '#63758B',
-    fontSize: 11,
-    marginLeft: 6,
-  },
+  securityText: {color: '#63758B', fontSize: 11, marginLeft: 6},
 });

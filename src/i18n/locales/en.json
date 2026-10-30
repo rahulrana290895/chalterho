@@ -187,5 +187,6 @@
   "status": "Status",
   "completed": "Completed",
   "day" : "Day",
-  "month" : "Month"
+  "month" : "Month",
+  "attachment": "Attachment"
 }

@@ -183,7 +183,7 @@ const openDocument = async fileName => {
         {item.docs ? (
           <View style={styles.row}>
             <Text style={styles.label}>
-              Attachment
+              {t('attachment')}
             </Text>
 
             <TouchableOpacity

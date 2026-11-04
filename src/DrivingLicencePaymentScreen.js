@@ -1,3 +1,4 @@
+
 import React, {useEffect, useState} from 'react';
 import {
   View,
@@ -11,10 +12,13 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RazorpayCheckout from 'react-native-razorpay';
+import {useTranslation} from 'react-i18next';
 import {BASE_URL} from './config/config';
 
-export default function DrivingLicencePaymentScreen({navigation,route,}) {
+export default function DrivingLicencePaymentScreen({navigation, route}) {
   const {dlNumber, dob} = route.params;
+  const {t} = useTranslation();
+
   const [amount, setAmount] = useState(null);
   const [originalamount, setOriginalAmount] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,171 +30,135 @@ export default function DrivingLicencePaymentScreen({navigation,route,}) {
 
   const fetchCharge = async () => {
     try {
-      const response = await fetch(
-        `${BASE_URL}get_dl_charge.php`,
-      );
+      const response = await fetch(`${BASE_URL}get_dl_charge.php`);
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Unable to fetch charge');
+        throw new Error(result.message || t('dlChargeError'));
       }
 
       setAmount(Number(result.dl_charge));
       setOriginalAmount(Number(result.dl_price));
-
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('error'), error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const handlePayment = async () => {
+    if (paying || amount === null) return;
 
-const handlePayment = async () => {
-  if (paying || amount === null) {
-    return;
-  }
+    setPaying(true);
 
-  setPaying(true);
-  let stage = 'Creating payment order';
+    try {
+      const userId = await AsyncStorage.getItem('userId');
 
-  try {
-    const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        throw new Error(t('dlLoginAgain'));
+      }
 
-    if (!userId) {
-      throw new Error('User ID nahi mila. Please login again.');
-    }
-
-    // Step 1: Create Razorpay order
-    const orderResponse = await fetch(
-      `${BASE_URL}create_dl_order.php`,
-      {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          user_id: Number(userId),
-          license_number: dlNumber,
-          dob: dob,
-        }),
-      },
-    );
-
-    const order = await orderResponse.json();
-
-    if (!orderResponse.ok || !order.success) {
-      throw new Error(order.message || 'Order create nahi hua');
-    }
-
-    if (!order.order_id || !order.key_id || !order.amount) {
-      throw new Error('Razorpay order response incomplete hai');
-    }
-
-    // Step 2: Open Razorpay checkout
-    stage = 'Opening Razorpay checkout';
-
-    const paymentData = await RazorpayCheckout.open({
-      key: order.key_id,
-      amount: order.amount,
-      currency: order.currency,
-      order_id: order.order_id,
-      name: 'ChalteRho',
-      description: 'Driving Licence Download',
-      theme: {color: '#173F70'},
-    });
-
-    // Step 3: Verify payment on PHP server
-    stage = 'Verifying payment';
-
-    const verifyResponse = await fetch(
-      `${BASE_URL}verify_dl_payment.php`,
-      {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          request_id: order.request_id,
-          razorpay_payment_id: paymentData.razorpay_payment_id,
-          razorpay_order_id: paymentData.razorpay_order_id,
-          razorpay_signature: paymentData.razorpay_signature,
-        }),
-      },
-    );
-
-    const verification = await verifyResponse.json();
-    const rawResponse = await verifyResponse.text();
-    console.log('VERIFY STATUS:', verifyResponse.status);
-    console.log('VERIFY RESPONSE:', rawResponse);
-
-    if (!verifyResponse.ok || !verification.success) {
-      throw new Error(
-        verification.message || 'Server payment verification failed',
+      const orderResponse = await fetch(
+        `${BASE_URL}create_dl_order.php`,
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            user_id: Number(userId),
+            license_number: dlNumber,
+            dob: dob,
+          }),
+        },
       );
+
+      const order = await orderResponse.json();
+
+      if (!orderResponse.ok || !order.success) {
+        throw new Error(order.message || t('dlOrderError'));
+      }
+
+      if (!order.order_id || !order.key_id || !order.amount) {
+        throw new Error(t('dlIncompleteOrder'));
+      }
+
+      const paymentData = await RazorpayCheckout.open({
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: 'ChalteRho',
+        description: t('dlPaymentDescription'),
+        theme: {color: '#173F70'},
+      });
+
+      const verifyResponse = await fetch(
+        `${BASE_URL}verify_dl_payment.php`,
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            request_id: order.request_id,
+            razorpay_payment_id: paymentData.razorpay_payment_id,
+            razorpay_order_id: paymentData.razorpay_order_id,
+            razorpay_signature: paymentData.razorpay_signature,
+          }),
+        },
+      );
+
+      const verification = await verifyResponse.json();
+
+      if (!verifyResponse.ok || !verification.success) {
+        throw new Error(
+          verification.message || t('dlVerificationError'),
+        );
+      }
+
+      Alert.alert(
+        t('paymentSuccess'),
+        t('dlSavedSuccess'),
+        [
+          {
+            text: t('ok'),
+            onPress: () => {
+              navigation.reset({
+                index: 0,
+                routes: [{name: 'DrivingLicenceScreen'}],
+              });
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      Alert.alert(
+        t('paymentFailed'),
+        error.message || t('dlPaymentError'),
+      );
+    } finally {
+      setPaying(false);
     }
-
-    Alert.alert(
-      'Payment Successful',
-      'Payment verify And  Driving Licence saved',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{name: 'DrivingLicenceScreen'}],
-            });
-          },
-        },
-      ],
-    );
-  } catch (error) {
-    Alert.alert(
-      'Payment Successful',
-      'Payment verify And  Driving Licence saved',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{name: 'DrivingLicenceScreen'}],
-            });
-          },
-        },
-      ],
-    );
-  } finally {
-    setPaying(false);
-  }
-};
-
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
         <View style={styles.iconBox}>
-          <Ionicons
-            name="checkmark-circle"
-            size={64}
-            color="#218653"
-          />
+          <Ionicons name="checkmark-circle" size={64} color="#218653" />
         </View>
 
-        <Text style={styles.title}>Licence Fetched Successfully!</Text>
+        <Text style={styles.title}>{t('dlFetchedTitle')}</Text>
 
-        <Text style={styles.message}>
-          Your Driving Licence fetched successfully.
-          Please make payment to download your Driving Licence.
-        </Text>
+        <Text style={styles.message}>{t('dlFetchedMessage')}</Text>
 
         <View style={styles.details}>
-          <Text style={styles.label}>Licence Number</Text>
+          <Text style={styles.label}>{t('dlLicenceNumber')}</Text>
           <Text style={styles.value}>{dlNumber || 'N/A'}</Text>
 
-          <Text style={styles.label}>Date of Birth</Text>
+          <Text style={styles.label}>{t('dlDateOfBirth')}</Text>
           <Text style={styles.value}>{dob || 'N/A'}</Text>
         </View>
 
         <View style={styles.amountBox}>
-          <Text style={styles.amountLabel}>Download Charges</Text>
+          <Text style={styles.amountLabel}>{t('dlDownloadCharges')}</Text>
 
           {loading ? (
             <ActivityIndicator color="#173F70" />
@@ -204,12 +172,10 @@ const handlePayment = async () => {
                   </Text>
                 )}
 
-              <Text style={styles.amount}>
-                ₹{amount.toFixed(2)}
-              </Text>
+              <Text style={styles.amount}>₹{amount.toFixed(2)}</Text>
             </View>
           ) : (
-            <Text style={styles.error}>Unable to load charges</Text>
+            <Text style={styles.error}>{t('dlUnableCharges')}</Text>
           )}
         </View>
 
@@ -225,7 +191,9 @@ const handlePayment = async () => {
           ) : (
             <>
               <Ionicons name="card-outline" size={21} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Proceed to Payment</Text>
+              <Text style={styles.buttonText}>
+                {t('dlProceedPayment')}
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -307,7 +275,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textDecorationLine: 'line-through',
   },
-
   error: {
     color: '#C62828',
     marginTop: 8,

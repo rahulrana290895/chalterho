@@ -1,81 +1,64 @@
-
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-
+import {View, Text, StyleSheet, ScrollView} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {useTranslation} from 'react-i18next';
 
 const TermsConditionsScreen = () => {
-  const navigation = useNavigation();
+  const {t} = useTranslation();
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content}>
-        <Text style={styles.title}>Terms & Conditions</Text>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}>
 
-        <Text style={styles.date}>Last Updated: 02 November 2026</Text>
+        <Text style={styles.title}>{t('termsTitle')}</Text>
 
-        <Text style={styles.heading}>1. Introduction</Text>
-        <Text style={styles.paragraph}>
-          Welcome to ChalteRho. By using our mobile application,
-          you agree to follow these Terms & Conditions.
+        <Text style={styles.date}>
+          {t('effectiveDate')}: 04 November 2026{"\n"}
+          {t('lastUpdated')}: 04 November 2026
         </Text>
 
-        <Text style={styles.heading}>2. User Registration</Text>
         <Text style={styles.paragraph}>
-          Users must provide correct mobile numbers and
-          other required information during registration.
-          Users are responsible for keeping their account
-          credentials secure.
+          {t('termsIntro')}
         </Text>
 
-        <Text style={styles.heading}>3. Services</Text>
-        <Text style={styles.paragraph}>
-          ChalteRho provides various online services including
-          vehicle-related services, document services and
-          other facilities available in the application.
-        </Text>
+        <Text style={styles.heading}>{t('termsSection1')}</Text>
+        <Text style={styles.paragraph}>{t('termsRole')}</Text>
 
-        <Text style={styles.heading}>4. Payments</Text>
-        <Text style={styles.paragraph}>
-          Users must pay the applicable service charges
-          before using paid services. Payment confirmation
-          is subject to successful payment verification.
-        </Text>
+        <Text style={styles.heading}>{t('termsSection2')}</Text>
+        <Text style={styles.paragraph}>{t('termsResponsibilities')}</Text>
 
-        <Text style={styles.heading}>5. User Responsibilities</Text>
-        <Text style={styles.paragraph}>
-          Users must provide accurate information and must
-          not misuse the application or use it for any
-          illegal activities.
-        </Text>
+        <Text style={styles.heading}>{t('termsSection3')}</Text>
+        <Text style={styles.paragraph}>{t('termsOTP')}</Text>
 
-        <Text style={styles.heading}>6. Refund Policy</Text>
-        <Text style={styles.paragraph}>
-          Refund requests will be handled according to the
-          applicable refund policy of ChalteRho and the
-          status of the requested service.
-        </Text>
+        <Text style={styles.heading}>{t('termsSection4')}</Text>
+        <Text style={styles.paragraph}>{t('termsFees')}</Text>
 
-        <Text style={styles.heading}>7. Changes to Terms</Text>
-        <Text style={styles.paragraph}>
-          ChalteRho reserves the right to update these
-          Terms & Conditions whenever required.
-        </Text>
+        <Text style={styles.heading}>{t('termsSection5')}</Text>
+        <Text style={styles.paragraph}>{t('termsProcessing')}</Text>
 
-        <Text style={styles.heading}>8. Contact Us</Text>
-        <Text style={styles.paragraph}>
-          For any questions regarding these Terms &
-          Conditions, please contact our support team.
-        </Text>
+        <Text style={styles.heading}>{t('termsSection6')}</Text>
+        <Text style={styles.paragraph}>{t('termsGovernmentThirdParty')}</Text>
 
-        <View style={{height: 30}} />
+        <Text style={styles.heading}>{t('termsSection7')}</Text>
+        <Text style={styles.paragraph}>{t('termsSuspension')}</Text>
+
+        <Text style={styles.heading}>{t('termsSection8')}</Text>
+        <Text style={styles.paragraph}>{t('termsContact')}</Text>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {t('thankYouForChoosing')}
+          </Text>
+          <Text style={styles.brand}>Chalte Rho</Text>
+          <Text style={styles.contact}>
+            info@chalterho.com{"\n"}
+            9625065008
+          </Text>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -84,52 +67,29 @@ const TermsConditionsScreen = () => {
 export default TermsConditionsScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'orangered',
-  },
-  backButton: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 15,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  content: {
-    padding: 20,
-  },
+  container: {flex: 1, backgroundColor: '#fff'},
+  content: {flex: 1},
+  contentContainer: {padding: 20, paddingBottom: 30},
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'orangered',
-    marginBottom: 8,
+    fontSize: 24, fontWeight: 'bold', color: 'orangered', marginBottom: 8,
   },
-  date: {
-    color: '#888',
-    fontSize: 12,
-    marginBottom: 20,
-  },
+  date: {fontSize: 12, lineHeight: 20, marginBottom: 20},
   heading: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#222',
-    marginTop: 18,
-    marginBottom: 8,
+    fontSize: 17, fontWeight: 'bold', color: '#17365D',
+    marginTop: 20, marginBottom: 9,
   },
   paragraph: {
-    fontSize: 14,
-    color: '#555',
-    lineHeight: 23,
-    textAlign: 'justify',
+    fontSize: 14, lineHeight: 24, textAlign: 'justify', marginBottom: 8,
+  },
+  footer: {
+    marginTop: 30, marginBottom: 15, padding: 20,
+    backgroundColor: '#fff2ed', borderRadius: 12, alignItems: 'center',
+  },
+  footerText: {fontSize: 14},
+  brand: {
+    fontSize: 21, fontWeight: 'bold', color: 'orangered', marginTop: 7,
+  },
+  contact: {
+    fontSize: 12, textAlign: 'center', lineHeight: 21, marginTop: 10,
   },
 });

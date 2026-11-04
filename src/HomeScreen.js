@@ -46,6 +46,8 @@ const SERVICE_TRANSLATION_KEYS = {
   'ALL INDIA PERMIT': 'allIndiaPermit',
   'PF Withdrawal Service': 'pfWithdrawalService',
   'PF Withdrawal': 'pfWithdrawalService',
+  'Driving Licence': 'drivingLicence',
+  'RC Download': 'rcDownload',
 };
 
 export default function HomeScreen({navigation}) {

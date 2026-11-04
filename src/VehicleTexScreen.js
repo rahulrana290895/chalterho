@@ -714,28 +714,28 @@ export default function VehicleTexScreen({navigation}) {
 
                 switch (item) {
                   case 'Day':
-                    label = t('day');
+                    label = t('Day');
                     break;
                   case '3Day':
-                    label = t('threeDays');
+                    label = t('3 Days');
                     break;
                   case '5Day':
-                    label = t('fiveDays');
+                    label = t('5 Days');
                     break;
                   case 'Weekly':
-                    label = t('weekly');
+                    label = t('Weekly');
                     break;
                   case 'Month':
-                    label = t('monthly');
+                    label = t('Monthly');
                     break;
                   case 'Quarter':
-                    label = t('quarter');
+                    label = t('Quarter');
                     break;
                   case 'Half Year':
-                    label = t('halfYear');
+                    label = t('Half Year');
                     break;
                   case 'Year':
-                    label = t('yearly');
+                    label = t('Yearly');
                     break;
                   default:
                     label = item;

@@ -1,38 +1,28 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-} from 'react-native';
+import {View, Text, StyleSheet} from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useTranslation} from 'react-i18next';
 
 const BannedScreen = () => {
+  const {t} = useTranslation();
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
-
         <View style={styles.iconBox}>
-          <Ionicons
-            name="ban"
-            size={65}
-            color="#DC2626"
-          />
+          <Ionicons name="ban" size={65} color="#DC2626" />
         </View>
 
-        <Text style={styles.title}>
-          Account Banned!
-        </Text>
+        <Text style={styles.title}>{t('bannedTitle')}</Text>
 
         <Text style={styles.message}>
-          Your ChalteRho account has been suspended.
-          You cannot access the application at this time.
+          {t('bannedMessage')}
         </Text>
 
         <Text style={styles.support}>
-          Please contact our support team for further assistance.
+          {t('bannedSupport')}
         </Text>
-
       </View>
     </SafeAreaView>
   );

@@ -19,8 +19,9 @@ export default function HelplineScreen() {
   const email = 'info@chalterho.com';
 
   const instagramUrl = 'https://www.instagram.com/chalterho.services/';
-  const facebookUrl  =  'https://www.facebook.com/profile.php?id=61591310758530';
-  const whatsappChannelUrl = 'https://whatsapp.com/channel/0029VbDyxwg8F2pLoaHkMb0S';
+  const facebookUrl = 'https://www.facebook.com/profile.php?id=61591310758530';
+  const whatsappChannelUrl =
+    'https://whatsapp.com/channel/0029VbDyxwg8F2pLoaHkMb0S';
 
   const openLink = async url => {
     try {
@@ -29,10 +30,10 @@ export default function HelplineScreen() {
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Error', 'Unable to open this link.');
+        Alert.alert(t('error'), t('helplineUnableLink'));
       }
     } catch (error) {
-      Alert.alert('Error', 'Something went wrong.');
+      Alert.alert(t('error'), t('helplineSomethingWrong'));
     }
   };
 
@@ -98,46 +99,64 @@ export default function HelplineScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* CONNECT WITH US SECTION */}
-<View style={styles.connectSection}>
-  <Text style={styles.connectHeading}>Connect With Us</Text>
-  <Text style={styles.connectSubHeading}>
-    Follow ChalteRho on social media
-  </Text>
+        {/* Connect With Us */}
+        <View style={styles.connectSection}>
+          <Text style={styles.connectHeading}>
+            {t('connectWithUs')}
+          </Text>
 
-  <View style={styles.socialRow}>
-    {/* Instagram */}
-    <TouchableOpacity
-      style={styles.socialItem}
-      onPress={() => openLink(instagramUrl)}>
-      <View style={[styles.socialIconBox, {backgroundColor: '#FCE4EC'}]}>
-        <Icon name="instagram" size={27} color="#E1306C" />
-      </View>
-      <Text style={styles.socialLabel}>Instagram</Text>
-    </TouchableOpacity>
+          <Text style={styles.connectSubHeading}>
+            {t('followChalteRho')}
+          </Text>
 
-    {/* Facebook */}
-    <TouchableOpacity
-      style={styles.socialItem}
-      onPress={() => openLink(facebookUrl)}>
-      <View style={[styles.socialIconBox, {backgroundColor: '#E3F2FD'}]}>
-        <Icon name="facebook" size={27} color="#1877F2" />
-      </View>
-      <Text style={styles.socialLabel}>Facebook</Text>
-    </TouchableOpacity>
+          <View style={styles.socialRow}>
+            {/* Instagram */}
+            <TouchableOpacity
+              style={styles.socialItem}
+              onPress={() => openLink(instagramUrl)}>
+              <View
+                style={[
+                  styles.socialIconBox,
+                  {backgroundColor: '#FCE4EC'},
+                ]}>
+                <Icon name="instagram" size={27} color="#E1306C" />
+              </View>
+              <Text style={styles.socialLabel}>Instagram</Text>
+            </TouchableOpacity>
 
-    {/* WhatsApp Channel */}
-    <TouchableOpacity
-      style={styles.socialItem}
-      onPress={() => openLink(whatsappChannelUrl)}>
-      <View style={[styles.socialIconBox, {backgroundColor: '#E8F5E9'}]}>
-        <Icon name="whatsapp" size={27} color="#25D366" />
-      </View>
-      <Text style={styles.socialLabel}>WhatsApp</Text>
-      <Text style={styles.channelLabel}>Channel</Text>
-    </TouchableOpacity>
-  </View>
-</View>
+            {/* Facebook */}
+            <TouchableOpacity
+              style={styles.socialItem}
+              onPress={() => openLink(facebookUrl)}>
+              <View
+                style={[
+                  styles.socialIconBox,
+                  {backgroundColor: '#E3F2FD'},
+                ]}>
+                <Icon name="facebook" size={27} color="#1877F2" />
+              </View>
+              <Text style={styles.socialLabel}>Facebook</Text>
+            </TouchableOpacity>
+
+            {/* WhatsApp Channel */}
+            <TouchableOpacity
+              style={styles.socialItem}
+              onPress={() => openLink(whatsappChannelUrl)}>
+              <View
+                style={[
+                  styles.socialIconBox,
+                  {backgroundColor: '#E8F5E9'},
+                ]}>
+                <Icon name="whatsapp" size={27} color="#25D366" />
+              </View>
+              <Text style={styles.socialLabel}>WhatsApp</Text>
+              <Text style={styles.channelLabel}>
+                {t('channel')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={{height: 25}} />
       </ScrollView>
     </SafeAreaView>
@@ -190,8 +209,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
-
-  // Connect With Us
   connectSection: {
     marginTop: 25,
   },
@@ -206,36 +223,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 18,
   },
-  socialCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 13,
-    elevation: 3,
-  },
-  socialIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  socialText: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  socialTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  socialValue: {
-    fontSize: 13,
-    color: '#777',
-    marginTop: 4,
-  },
   socialRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -247,13 +234,11 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 15,
   },
-
   socialItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   socialIconBox: {
     width: 52,
     height: 52,
@@ -262,14 +247,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-
   socialLabel: {
     fontSize: 12,
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
   },
-
   channelLabel: {
     fontSize: 11,
     color: '#777',

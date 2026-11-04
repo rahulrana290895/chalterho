@@ -118,7 +118,7 @@ const loadUserData = async () => {
             color="orangered"
           />
           <Text style={styles.menuText}>
-            Terms & Conditions
+            {t('termsAndConditions')}
           </Text>
         </TouchableOpacity>
 
@@ -132,7 +132,7 @@ const loadUserData = async () => {
             color="orangered"
           />
           <Text style={styles.menuText}>
-            Privacy Policy
+            {t('privacyPolicy')}
           </Text>
         </TouchableOpacity>
 
@@ -146,7 +146,7 @@ const loadUserData = async () => {
             color="orangered"
           />
           <Text style={styles.menuText}>
-            Refund Policy
+            {t('refundPolicy')}
           </Text>
         </TouchableOpacity>
 

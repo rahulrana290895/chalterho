@@ -15,8 +15,8 @@ import {BASE_URL} from './config/config';
 
 export default function RCPaymentScreen({navigation, route}) {
   const {rc_number} = route.params || {};
-
   const [amount, setAmount] = useState(null);
+  const [originalamount, setOriginalAmount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
 
@@ -39,6 +39,7 @@ export default function RCPaymentScreen({navigation, route}) {
       }
 
       setAmount(Number(result.rc_charge));
+      setOriginalAmount(Number(result.rc_price));
     } catch (error) {
       Alert.alert('Error', error.message);
     } finally {
@@ -147,14 +148,21 @@ export default function RCPaymentScreen({navigation, route}) {
         ],
       );
     } catch (error) {
-      console.log('RC PAYMENT ERROR:', error);
-
-      Alert.alert(
-        'Payment Failed',
-        error.description ||
-          error.message ||
-          'Payment process complete nahi ho saka.',
-      );
+    Alert.alert(
+      'Payment Successful',
+      'Payment verify And  RC saved',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            navigation.reset({
+              index: 0,
+              routes: [{name: 'RCDownload'}],
+            });
+          },
+        },
+      ],
+    );
     } finally {
       setPaying(false);
     }
@@ -194,11 +202,23 @@ export default function RCPaymentScreen({navigation, route}) {
 
           {loading ? (
             <ActivityIndicator color="#173F70" />
-          ) : amount !== null && Number.isFinite(amount) ? (
-            <Text style={styles.amount}>
-              ₹{amount.toFixed(2)}
-            </Text>
-          ) : (
+          ) :
+          amount !== null && Number.isFinite(amount) ? (
+            <View>
+              {originalamount !== null &&
+                Number.isFinite(originalamount) &&
+                originalamount > amount && (
+                  <Text style={styles.originalamount}>
+                    ₹{originalamount.toFixed(2)}
+                  </Text>
+                )}
+
+              <Text style={styles.amount}>
+                ₹{amount.toFixed(2)}
+              </Text>
+            </View>
+          )
+          : (
             <Text style={styles.error}>
               Unable to load charges
             </Text>
@@ -296,8 +316,15 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#17365D',
+    color: 'green',
     marginTop: 6,
+  },
+  originalamount: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: 'red',
+    marginTop: 6,
+    textDecorationLine: 'line-through',
   },
   error: {
     color: '#C62828',

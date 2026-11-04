@@ -26,8 +26,16 @@ const RegisterScreen = () => {
   const [referBy, setReferBy] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleRegister = async () => {
+  if (!acceptedTerms) {
+    Alert.alert(
+      'Terms Required',
+      'Please accept Terms & Conditions and Privacy Policy before registration.',
+    );
+    return;
+  }
     const cleanName = name.trim();
     const cleanMobile = mobile.trim();
     const cleanReferBy = referBy.trim();
@@ -194,6 +202,39 @@ const RegisterScreen = () => {
             />
 
             <TouchableOpacity
+              style={styles.termsContainer}
+              activeOpacity={0.8}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+              disabled={loading}>
+
+              <View
+                style={[
+                  styles.checkbox,
+                  acceptedTerms && styles.checkboxChecked,
+                ]}>
+
+                {acceptedTerms && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </View>
+
+              <Text style={styles.termsText}>
+                I agree to{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => navigation.navigate('TermsConditionsScreen')}>
+                  Terms & Conditions
+                </Text>
+                {' '}and{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => navigation.navigate('PrivacyPolicyScreen')}>
+                  Privacy Policy
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={[
                 styles.button,
                 loading && styles.disabledButton,
@@ -315,5 +356,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'orangered',
     fontWeight: '600',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    marginBottom: 15,
+  },
+
+  checkbox: {
+    width: 21,
+    height: 21,
+    borderWidth: 1.5,
+    borderColor: 'orangered',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+
+  checkboxChecked: {
+    backgroundColor: 'orangered',
+  },
+
+  checkmark: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#555',
+    lineHeight: 20,
+  },
+
+  termsLink: {
+    color: 'orangered',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });

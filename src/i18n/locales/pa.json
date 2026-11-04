@@ -181,5 +181,11 @@
   "duration": "ਮਿਆਦ",
   "amount": "ਰਕਮ",
   "status": "ਸਥਿਤੀ",
-  "completed": "ਮੁਕੰਮਲ"
+  "completed": "ਮੁਕੰਮਲ",
+  "termsRequired": "ਨਿਯਮ ਅਤੇ ਸ਼ਰਤਾਂ ਜ਼ਰੂਰੀ ਹਨ",
+  "pleaseAcceptTerms": "ਲੌਗਇਨ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਨਿਯਮ ਅਤੇ ਸ਼ਰਤਾਂ ਸਵੀਕਾਰ ਕਰੋ।",
+  "iAgreeTo": "ਮੈਂ ਸਹਿਮਤ ਹਾਂ",
+  "termsAndConditions": "ਨਿਯਮ ਅਤੇ ਸ਼ਰਤਾਂ",
+  "and": "ਅਤੇ",
+  "privacyPolicy": "ਪਰਾਈਵੇਸੀ ਪਾਲਿਸੀ"
 }

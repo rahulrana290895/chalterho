@@ -188,5 +188,12 @@
   "completed": "Completed",
   "day" : "Day",
   "month" : "Month",
-  "attachment": "Attachment"
+  "attachment": "Attachment",
+  "carefullyNotice" : "You are responsible for incorrect details. Please verify all information before submitting.",
+  "termsRequired": "Terms Required",
+  "pleaseAcceptTerms": "Please accept Terms & Conditions before login.",
+  "iAgreeTo": "I agree to",
+  "termsAndConditions": "Terms & Conditions",
+  "and": "and",
+  "privacyPolicy": "Privacy Policy"
 }

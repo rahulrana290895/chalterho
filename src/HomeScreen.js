@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react';
+import {useFocusEffect} from '@react-navigation/native';
+import React, {useCallback, useEffect, useState, useRef} from 'react';
 import {
   View,
   Text,
@@ -10,6 +11,7 @@ import {
   StatusBar,
   ScrollView,
   NativeModules,
+  Dimensions,
 } from 'react-native';
 
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -53,36 +55,61 @@ export default function HomeScreen({navigation}) {
   const [services, setServices] = useState([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState('');
+  const [notices, setNotices] = useState([]);
+  const [noticeIndex, setNoticeIndex] = useState(0);
+  const [banners, setBanners] = useState([]);
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const bannerRef = useRef(null);
+  const BANNER_WIDTH = Dimensions.get('window').width - 24;
 
   const currentLanguage = (i18n.language || 'en').split('-')[0];
 
-  const selectLanguage = async language => {
-    try {
-      await changeAppLanguage(language);
+
+useEffect(() => {
+getServices();
+getBalance();
+checkForAppUpdate();
+requestAppReview();
+getNotice()
+getBanners();
+}, []);
+useFocusEffect(
+  useCallback(() => {
+    setShowLanguages(false);
+    return () => {
       setShowLanguages(false);
-    } catch (error) {
-      console.log('Language change error:', error);
-    }
-  };
+    };
+  }, []),
+);
+useEffect(() => {
+  if (notices.length <= 1) return;
+  const interval = setInterval(() => {
+    setNoticeIndex(previousIndex =>
+      (previousIndex + 1) % notices.length
+    );
+  }, 4000);
+  return () => clearInterval(interval);
+}, [notices]);
+useEffect(() => {
+  if (banners.length <= 1) return;
 
-  const getServiceName = item => {
-    const key = SERVICE_TRANSLATION_KEYS[
-      String(item.name || '').trim()
-    ];
+  const interval = setInterval(() => {
+    setBannerIndex(previousIndex => {
+      const nextIndex = (previousIndex + 1) % banners.length;
 
-    return key ? t(key) : item.name;
-  };
+      bannerRef.current?.scrollTo({
+        x: nextIndex * BANNER_WIDTH,
+        animated: true,
+      });
 
-  useEffect(() => {
-    getServices();
-    getBalance();
-    getNotice();
-    checkForAppUpdate();
-    requestAppReview();
-  }, []);
+      return nextIndex;
+    });
+  }, 4000);
 
-  const checkForAppUpdate = async () => {
+  return () => clearInterval(interval);
+}, [banners, BANNER_WIDTH]);
+
+const checkForAppUpdate = async () => {
     try {
       const inAppUpdates = new SpInAppUpdates(false);
       const result = await inAppUpdates.checkNeedsUpdate();
@@ -98,8 +125,7 @@ export default function HomeScreen({navigation}) {
       console.log('App Update Error:', error);
     }
   };
-
-  const requestAppReview = async () => {
+const requestAppReview = async () => {
     try {
       if (!ReviewModule) {
         console.log('ReviewModule not available');
@@ -112,8 +138,7 @@ export default function HomeScreen({navigation}) {
       console.log('Review Error:', error);
     }
   };
-
-  const getBalance = async () => {
+const getBalance = async () => {
     try {
       const uid = await AsyncStorage.getItem('userId');
 
@@ -133,8 +158,7 @@ export default function HomeScreen({navigation}) {
       console.log('Balance API Error:', error);
     }
   };
-
-  const getServices = async () => {
+const getServices = async () => {
     try {
       const response = await fetch(`${BASE_URL}services.php`);
 
@@ -195,21 +219,55 @@ export default function HomeScreen({navigation}) {
       setLoading(false);
     }
   };
+const getNotice = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}get-notice.php`);
+    const result = await response.json();
 
-  const getNotice = async () => {
+    if (result.status && Array.isArray(result.notices)) {
+      const noticeList = result.notices.map(item => item.notice);
+
+      setNotices(noticeList);
+      setNoticeIndex(0);
+    } else {
+      setNotices([]);
+    }
+  } catch (error) {
+    console.log('Notice Error:', error);
+  }
+};
+const selectLanguage = async language => {
     try {
-      const response = await fetch(`${BASE_URL}get-notice.php`);
-      const result = await response.json();
-
-      if (result.status) {
-        setNotice(result.notice || '');
-      }
+      await changeAppLanguage(language);
+      setShowLanguages(false);
     } catch (error) {
-      console.log('Notice Error:', error);
+      console.log('Language change error:', error);
     }
   };
+const getServiceName = item => {
+    const key = SERVICE_TRANSLATION_KEYS[
+      String(item.name || '').trim()
+    ];
 
-  const renderService = ({item}) => (
+    return key ? t(key) : item.name;
+  };
+const getBanners = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}banners.php`);
+    const result = await response.json();
+
+    if (result.status && Array.isArray(result.banners)) {
+      setBanners(result.banners);
+      setBannerIndex(0);
+    } else {
+      setBanners([]);
+    }
+  } catch (error) {
+    console.log('Banner API Error:', error);
+  }
+};
+
+const renderService = ({item}) => (
     <TouchableOpacity
       style={styles.serviceItem}
       activeOpacity={0.8}
@@ -240,7 +298,6 @@ export default function HomeScreen({navigation}) {
       </Text>
     </TouchableOpacity>
   );
-
   if (loading) {
     return (
       <SafeAreaView style={styles.loader} edges={['top']}>
@@ -351,33 +408,75 @@ export default function HomeScreen({navigation}) {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}>
           {/* Notice */}
-          {notice !== '' && (
-            <View style={styles.noticeContainer}>
-              <Ionicons
-                name="information-circle"
-                size={20}
-                color="#FFFFFF"
-                style={styles.noticeIcon}
-              />
+{/* Auto Changing Notice */}
+{notices.length > 0 && (
+  <View style={styles.noticeContainer}>
+    <Ionicons
+      name="information-circle"
+      size={20}
+      color="#FFFFFF"
+      style={styles.noticeIcon}
+    />
 
-              <Text style={styles.noticeText}>{notice}</Text>
-            </View>
-          )}
+    <Text style={styles.noticeText} numberOfLines={2}>
+      {notices[noticeIndex]}
+    </Text>
+  </View>
+)}
 
           {/* Banner */}
-          <View style={styles.bannerContainer}>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('VehicleTexScreen')
-              }
-              activeOpacity={0.85}>
-              <Image
-                source={require('./assets/banner.jpg')}
-                style={styles.banner}
-                resizeMode="stretch"
-              />
-            </TouchableOpacity>
-          </View>
+{/* API BANNER CAROUSEL */}
+{banners.length > 0 && (
+  <View style={styles.bannerContainer}>
+    <ScrollView
+      ref={bannerRef}
+      horizontal
+      pagingEnabled
+      showsHorizontalScrollIndicator={false}
+      onMomentumScrollEnd={event => {
+        const index = Math.round(
+          event.nativeEvent.contentOffset.x / BANNER_WIDTH,
+        );
+        setBannerIndex(index);
+      }}>
+
+      {banners.map(item => (
+        <TouchableOpacity
+          key={String(item.id)}
+          activeOpacity={0.9}
+          onPress={() => {
+            if (item.screen) {
+              navigation.navigate(item.screen);
+            }
+          }}
+          style={{width: BANNER_WIDTH}}>
+
+          <Image
+            source={{
+              uri: `${item.image}`,
+            }}
+            style={styles.banner}
+          />
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+
+    {/* Carousel Dots */}
+    {banners.length > 1 && (
+      <View style={styles.bannerDots}>
+        {banners.map((item, index) => (
+          <View
+            key={String(item.id)}
+            style={[
+              styles.bannerDot,
+              bannerIndex === index && styles.activeBannerDot,
+            ]}
+          />
+        ))}
+      </View>
+    )}
+  </View>
+)}
 
           {/* Vehicle services */}
           <View style={styles.cardContainer}>
@@ -618,5 +717,39 @@ const styles = StyleSheet.create({
     marginRight: 6,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  bannerContainer: {
+    marginHorizontal: 12,
+    marginTop: 12,
+    overflow: 'hidden',
+    borderRadius: 10,
+    elevation: 3,
+    backgroundColor: '#FFFFFF',
+  },
+
+  banner: {
+    width: '100%',
+    height: 220,
+  },
+
+  bannerDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 9,
+    backgroundColor: '#FFFFFF',
+  },
+
+  bannerDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 10,
+    backgroundColor: '#CCCCCC',
+    marginHorizontal: 4,
+  },
+
+  activeBannerDot: {
+    width: 19,
+    backgroundColor: 'orangered',
   },
 });

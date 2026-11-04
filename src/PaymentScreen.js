@@ -182,8 +182,29 @@ export default function PaymentScreen({route, navigation}) {
       setLoading(true);
 
       const formData = new FormData();
+
       formData.append('amount', String(payableAmount));
       formData.append('uid', userId);
+      formData.append('phone_number', vehicleData.phone_number || '');
+      formData.append('vehicle_number', vehicleData.vehicle_number || '');
+      formData.append('chassis_number', vehicleData.chassis_number || '');
+      formData.append('state', vehicleData.state || '');
+      formData.append('category', vehicleData.category || '');
+      formData.append('sub_category', vehicleData.sub_category || '');
+      formData.append('start_date', vehicleData.start_date || '');
+      formData.append('end_date', vehicleData.end_date || '');
+      formData.append('no_of_seats', vehicleData.no_of_seats || '');
+      formData.append('ac_type', vehicleData.ac_type || '');
+      formData.append('service_amount',String(taxData?.amount || 0),);
+      formData.append(
+        'service_fees',
+        String(taxData?.service_fees || 0),
+      );
+      formData.append('payable', String(payableAmount));
+      formData.append(
+        'payment_type',
+        hasVehicleTax ? 'tax' : 'request_tax',
+      );
 
       console.log('ORDER AMOUNT IN RUPEES:', payableAmount);
 

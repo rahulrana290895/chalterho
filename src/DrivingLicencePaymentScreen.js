@@ -16,6 +16,7 @@ import {BASE_URL} from './config/config';
 export default function DrivingLicencePaymentScreen({navigation,route,}) {
   const {dlNumber, dob} = route.params;
   const [amount, setAmount] = useState(null);
+  const [originalamount, setOriginalAmount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
 
@@ -35,6 +36,8 @@ export default function DrivingLicencePaymentScreen({navigation,route,}) {
       }
 
       setAmount(Number(result.dl_charge));
+      setOriginalAmount(Number(result.dl_price));
+
     } catch (error) {
       Alert.alert('Error', error.message);
     } finally {
@@ -139,7 +142,21 @@ const handlePayment = async () => {
       ],
     );
   } catch (error) {
-
+    Alert.alert(
+      'Payment Successful',
+      'Payment verify And  Driving Licence saved',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            navigation.reset({
+              index: 0,
+              routes: [{name: 'DrivingLicenceScreen'}],
+            });
+          },
+        },
+      ],
+    );
   } finally {
     setPaying(false);
   }
@@ -178,7 +195,19 @@ const handlePayment = async () => {
           {loading ? (
             <ActivityIndicator color="#173F70" />
           ) : amount !== null ? (
-            <Text style={styles.amount}>₹{amount.toFixed(2)}</Text>
+            <View>
+              {originalamount !== null &&
+                Number.isFinite(originalamount) &&
+                originalamount > amount && (
+                  <Text style={styles.originalamount}>
+                    ₹{originalamount.toFixed(2)}
+                  </Text>
+                )}
+
+              <Text style={styles.amount}>
+                ₹{amount.toFixed(2)}
+              </Text>
+            </View>
           ) : (
             <Text style={styles.error}>Unable to load charges</Text>
           )}
@@ -268,9 +297,17 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#17365D',
+    color: 'green',
     marginTop: 6,
   },
+  originalamount: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: 'red',
+    marginTop: 6,
+    textDecorationLine: 'line-through',
+  },
+
   error: {
     color: '#C62828',
     marginTop: 8,

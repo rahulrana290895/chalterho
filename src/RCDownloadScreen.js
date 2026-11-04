@@ -1,4 +1,3 @@
-
 import React, {useEffect, useState} from 'react';
 import {
   View,
@@ -12,15 +11,19 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-
+import notifee, {AndroidImportance, } from '@notifee/react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import {BASE_URL} from './config/config';
+import {useTranslation} from 'react-i18next';
 
 export default function RCDownload({navigation}) {
+  const {t} = useTranslation();
   const [activeTab, setActiveTab] = useState('my');
   const [rcNumber, setRcNumber] = useState('');
   const [rcList, setRcList] = useState([]);
@@ -93,53 +96,78 @@ const searchRC = async () => {
 };
 
   // Download PDF from the saved pdf_url
-  const downloadRC = async item => {
-    try {
-      const pdfUrl = item.pdf_url || item.download_url;
 
-      if (!pdfUrl || !/^https?:\/\//i.test(pdfUrl)) {
-        Alert.alert(
-          'PDF Not Available',
-          'Valid RC PDF URL database mein nahi mila.',
-        );
-        return;
-      }
-
-      const number = String(item.rc_number || 'RC').replace(
-        /[^a-zA-Z0-9_-]/g,
-        '_',
+const downloadRC = async item => {
+  try {
+    const pdfUrl = item.pdf_url || item.download_url;
+    if (!pdfUrl || !/^https?:\/\//i.test(pdfUrl))
+    {
+      Alert.alert(
+        'PDF Not Available',
+        'Valid RC PDF URL Not found in database.',
       );
-
-      const fileName = `RC_${number}_${Date.now()}.pdf`;
-      const filePath = `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
-
-      const result = await ReactNativeBlobUtil.config({
-        addAndroidDownloads: {
-          useDownloadManager: true,
-          notification: true,
-          title: fileName,
-          description: 'Downloading RC PDF',
-          mime: 'application/pdf',
-          mediaScannable: true,
-          path: filePath,
-        },
-      }).fetch('GET', pdfUrl);
-
-      const status = result.info().status;
-
-      if (status >= 200 && status < 300) {
-        Alert.alert(
-          'Download Successful',
-          `RC PDF Downloads folder mein save ho gayi.\n${fileName}`,
-        );
-      } else {
-        Alert.alert('Download Failed', `Server status: ${status}`);
-      }
-    } catch (error) {
-      console.log('RC download error:', error);
-      Alert.alert('Download Error', error.message || 'PDF download failed.');
+      return;
     }
-  };
+    const number = String(item.rc_number || 'RC').replace(
+      /[^a-zA-Z0-9_-]/g,
+      '_',
+    );
+    const fileName = `RC_${number}_${Date.now()}.pdf`;
+    const channelId = await notifee.createChannel({
+      id: 'rc_downloads',
+      name: 'RC Downloads',
+      importance: AndroidImportance.HIGH,
+    });
+    await notifee.requestPermission();
+    // Download to temporary cache
+    const tempPath = `${ReactNativeBlobUtil.fs.dirs.CacheDir}/${fileName}`;
+    const response = await ReactNativeBlobUtil.config({
+      path: tempPath,
+    }).fetch('GET', pdfUrl);
+    if (response.info().status !== 200) {
+      throw new Error('PDF download failed');
+    }
+    const stats = await ReactNativeBlobUtil.fs.stat(tempPath);
+    if (!stats.size || Number(stats.size) === 0) {
+      throw new Error('Downloaded PDF is empty');
+    }
+    // Save PDF in public storage RC folder
+    const savedUri = await ReactNativeBlobUtil.MediaCollection.copyToMediaStore(
+        {
+          name: fileName,
+          parentFolder: 'RC',
+          mimeType: 'application/pdf',
+        },
+        'Download',
+        tempPath,
+      );
+    if (!savedUri) { throw new Error('Unable to save PDF in RC folder'); }
+    await ReactNativeBlobUtil.fs.unlink(tempPath).catch(() => {});
+   // Notification
+    await notifee.displayNotification({
+      title: 'RC Download Complete',
+      body: `${fileName} saved in RC folder`,
+      android: {
+        channelId,
+        smallIcon: 'ic_launcher',
+        pressAction: {
+          id: 'default',
+        },
+      },
+    });
+    Alert.alert(
+      'Download Successful',
+      `Your RC PDF is saved in Internal Storage/Download/RC`,
+    );
+  } catch (error) {
+    console.log('RC download error:', error);
+    Alert.alert(
+      'Download Error',
+      error.message || 'PDF download failed.',
+    );
+  }
+};
+
 
   const renderRCCard = (item, index) => (
     <View style={styles.rcCard} key={String(item.id || item.rc_number || index)}>
@@ -176,6 +204,40 @@ const searchRC = async () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+<KeyboardAvoidingView
+  style={{flex: 1}}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  keyboardVerticalOffset={0}>
+
+  <ScrollView
+    style={{flex: 1}}
+    contentContainerStyle={{
+      flexGrow: 1,
+      paddingBottom: 40,
+    }}
+    showsVerticalScrollIndicator={false}
+    keyboardShouldPersistTaps="handled"
+    keyboardDismissMode="on-drag">
+        <View style={styles.noticeBox}>
+          <View style={styles.noticeIcon}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={25}
+              color="#D97706"
+            />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.noticeTitle}>
+              {t('importantNotice')}
+            </Text>
+
+            <Text style={styles.noticeText}>
+              {t('carefullyNotice')}
+            </Text>
+          </View>
+        </View>
+
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
 
       {/* Tabs */}
@@ -208,7 +270,7 @@ const searchRC = async () => {
       </View>
 
       {activeTab === 'my' ? (
-        <ScrollView
+        <View
           contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl
@@ -256,9 +318,9 @@ const searchRC = async () => {
               </TouchableOpacity>
             </View>
           )}
-        </ScrollView>
+        </View>
       ) : (
-        <ScrollView
+        <View
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}>
           <View style={styles.searchCard}>
@@ -354,9 +416,12 @@ const searchRC = async () => {
               </Text>
             </View>
           </View>
-        </ScrollView>
+        </View>
       )}
-    </SafeAreaView>
+
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
   );
 }
 
@@ -602,4 +667,36 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   securityText: {color: '#63758B', fontSize: 11, marginLeft: 6},
+      noticeBox: {
+        backgroundColor: '#FFF8E8',
+        borderWidth: 1,
+        borderColor: '#F5D48A',
+        padding: 11,
+        marginBottom: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+      },
+      noticeIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#FFE9B5',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+      },
+      noticeContent: {
+        flex: 1,
+      },
+      noticeTitle: {
+        color: '#9A5B00',
+        fontSize: 14,
+        fontWeight: '800',
+        marginBottom: 2,
+      },
+      noticeText: {
+        color: '#805B21',
+        fontSize: 12,
+        lineHeight: 17,
+      },
 });

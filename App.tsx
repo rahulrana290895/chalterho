@@ -9,6 +9,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {useTranslation} from 'react-i18next';
 import {initializeLanguage} from './src/i18n';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import LoginScreen from './src/LoginScreen';
 import HomeScreen from './src/HomeScreen';
@@ -34,12 +35,15 @@ import DrivingLicenceScreen from './src/DrivingLicenceScreen';
 import DrivingLicencePaymentScreen from './src/DrivingLicencePaymentScreen';
 import RCDownloadScreen from './src/RCDownloadScreen';
 import RCPaymentScreen from './src/RCPaymentScreen';
+import BannedScreen from './src/BannedScreen';
+import TermsConditionsScreen from './src/TermsConditionsScreen';
+import PrivacyPolicyScreen from './src/PrivacyPolicyScreen';
+import RefundPolicyScreen from './src/RefundPolicyScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 function MoreHeaderTitle() {
   const {t} = useTranslation();
-
   return (
     <Text style={{color: '#fff', fontSize: 18, fontWeight: '600'}}>
       {t('more')}
@@ -48,7 +52,6 @@ function MoreHeaderTitle() {
 }
 function TranslatedHeader({titleKey}) {
   const {t} = useTranslation();
-
   return (
     <Text style={{color: '#fff', fontSize: 18, fontWeight: '600'}}>
       {t(titleKey)}
@@ -57,7 +60,6 @@ function TranslatedHeader({titleKey}) {
 }
 function BottomTabs() {
   const {t} = useTranslation();
-
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
@@ -101,28 +103,38 @@ function BottomTabs() {
 
 export default function App() {
   const [languageReady, setLanguageReady] = useState(false);
+  const [initialRouteName, setInitialRouteName] = useState('LoginScreen');
 
-  useEffect(() => {
-    let mounted = true;
-
-    initializeLanguage()
-      .then(() => {
+    useEffect(() => {
+      let mounted = true;
+      const initializeApp = async () => {
+        let storedUserId = null;
+        // Initialize language
+        try {
+          await initializeLanguage();
+        } catch (error) {
+          console.log('Language initialization error:', error);
+        }
+        // Check login status
+        try {
+          storedUserId = await AsyncStorage.getItem('userId');
+        } catch (error) {
+          console.log('User ID error:', error);
+        }
         if (mounted) {
+          setInitialRouteName(
+            storedUserId && storedUserId.trim() !== ''
+              ? 'MainTabs'
+              : 'LoginScreen',
+          );
           setLanguageReady(true);
         }
-      })
-      .catch(error => {
-        console.log('Language initialization error:', error);
-
-        if (mounted) {
-          setLanguageReady(true);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+      };
+      initializeApp();
+      return () => {
+        mounted = false;
+      };
+    }, []);
 
   if (!languageReady) {
     return (
@@ -146,7 +158,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator>
+        <Stack.Navigator
+          initialRouteName={initialRouteName}
+          screenOptions={{
+            headerBackTitleVisible: false,
+          }}>
           {/* Login Screen */}
           <Stack.Screen
             name="LoginScreen"
@@ -352,6 +368,39 @@ export default function App() {
             component={RCPaymentScreen}
             options={{
               headerTitle: 'RC Download',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+          <Stack.Screen
+            name="BannedScreen"
+            component={BannedScreen}
+            options={{headerShown: false}}
+          />
+
+          <Stack.Screen
+            name="TermsConditionsScreen"
+            component={TermsConditionsScreen}
+            options={{
+              headerTitle: 'Terms & Conditions',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+          <Stack.Screen
+            name="PrivacyPolicyScreen"
+            component={PrivacyPolicyScreen}
+            options={{
+              headerTitle: 'Privacy & Policy',
+              headerStyle: {backgroundColor: '#001433'},
+              headerTintColor: '#fff',
+            }}
+          />
+          <Stack.Screen
+            name="RefundPolicyScreen"
+            component={RefundPolicyScreen}
+            options={{
+              headerTitle: 'Refund Policy',
               headerStyle: {backgroundColor: '#001433'},
               headerTintColor: '#fff',
             }}

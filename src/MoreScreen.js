@@ -99,6 +99,7 @@ const loadUserData = async () => {
           <Ionicons
             name="information-circle-outline"
             size={22}
+            color="orangered"
           />
 
          <Text style={styles.menuText}>
@@ -106,12 +107,57 @@ const loadUserData = async () => {
          </Text>
         </TouchableOpacity>
 
+
+        {/* Terms & Conditions */}
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('TermsConditionsScreen')}>
+          <Ionicons
+            name="document-text-outline"
+            size={22}
+            color="orangered"
+          />
+          <Text style={styles.menuText}>
+            Terms & Conditions
+          </Text>
+        </TouchableOpacity>
+
+        {/* Privacy Policy */}
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('PrivacyPolicyScreen')}>
+          <Ionicons
+            name="shield-checkmark-outline"
+            size={22}
+            color="orangered"
+          />
+          <Text style={styles.menuText}>
+            Privacy Policy
+          </Text>
+        </TouchableOpacity>
+
+        {/* Refund Policy */}
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('RefundPolicyScreen')}>
+          <Ionicons
+            name="wallet-outline"
+            size={22}
+            color="orangered"
+          />
+          <Text style={styles.menuText}>
+            Refund Policy
+          </Text>
+        </TouchableOpacity>
+
+
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => navigation.navigate('ReferEarnScreen')}>
           <Ionicons
             name="gift-outline"
             size={22}
+            color="orangered"
           />
 
           <Text style={styles.menuText}>

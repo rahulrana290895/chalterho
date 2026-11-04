@@ -12,7 +12,7 @@ import {
   Platform,
   PermissionsAndroid
 } from 'react-native';
-
+import notifee, {AndroidImportance, } from '@notifee/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import ReactNativeBlobUtil from 'react-native-blob-util';
@@ -47,7 +47,6 @@ export default function TaxHistoryScreen() {
     }
   };
 
-
 const openDocument = async fileName => {
   try {
     if (!fileName) {
@@ -79,49 +78,151 @@ const openDocument = async fileName => {
       rar: 'application/vnd.rar',
     };
 
-    const mimeType = mimeTypes[extension] || 'application/octet-stream';
-    const url = `https://chalterho.com/assets/docs/${encodeURIComponent(cleanFileName)}`;
+    const mimeType =
+      mimeTypes[extension] || 'application/octet-stream';
 
-    // Agar image hai to Pictures folder me save karein taaki Gallery me dikhe, warna Downloads me
-    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
-    const targetDir = isImage
-      ? ReactNativeBlobUtil.fs.dirs.PictureDir
-      : ReactNativeBlobUtil.fs.dirs.DownloadDir;
+    const isImage = [
+      'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
+    ].includes(extension);
 
-    const filePath = `${targetDir}/${cleanFileName}`;
+    const url = /^https?:\/\//i.test(fileName)
+      ? fileName
+      : `https://chalterho.com/assets/docs/${encodeURIComponent(cleanFileName)}`;
 
-    const response = await ReactNativeBlobUtil.config({
-      path: filePath,
-      addAndroidDownloads: {
-        useDownloadManager: true,
-        notification: true,
-        title: cleanFileName,
-        description: 'Downloading file...',
-        mime: mimeType,
-        mediaScannable: true,
-      },
-    }).fetch('GET', url);
+    const channelId = await notifee.createChannel({
+      id: 'downloads',
+      name: 'Downloads',
+      importance: AndroidImportance.HIGH,
+    });
 
-    // Media scan karna zaroori hai taaki phone ki gallery/file indexer ko pata chale
+    await notifee.requestPermission();
+
     if (isImage) {
-      ReactNativeBlobUtil.fs.scanFile([{ path: filePath, mime: mimeType }])
-        .then(() => {
-          console.log('scanned successfully');
-        })
-        .catch((err) => {
-          console.log('scan error', err);
-        });
-    }
+      // Image download
+      const tempPath =
+        `${ReactNativeBlobUtil.fs.dirs.CacheDir}/${cleanFileName}`;
 
-    Alert.alert(
-      'Download Complete',
-      `${cleanFileName} saved successfully!`,
+      const response = await ReactNativeBlobUtil
+        .config({ path: tempPath })
+        .fetch('GET', url);
+
+      if (response.info().status !== 200) {
+        throw new Error('File download failed');
+      }
+
+      // Save image in Gallery
+      await ReactNativeBlobUtil.MediaCollection.copyToMediaStore(
+        {
+          name: cleanFileName,
+          parentFolder: 'ChalteRho',
+          mimeType: mimeType,
+        },
+        'Image',
+        tempPath,
+      );
+
+      await ReactNativeBlobUtil.fs.unlink(tempPath).catch(() => {});
+
+      // Notification
+      await notifee.displayNotification({
+        title: 'Download Complete',
+        body: `${cleanFileName} saved in Gallery`,
+        android: {
+          channelId,
+          smallIcon: 'ic_launcher',
+          pressAction: {
+            id: 'default',
+          },
+        },
+      });
+
+      Alert.alert('Success', 'File saved in Gallery!');
+
+
+
+
+} else {
+  // PDF / DOC / XLS download to public Downloads
+
+  const tempPath =
+    `${ReactNativeBlobUtil.fs.dirs.CacheDir}/${cleanFileName}`;
+
+  const response = await ReactNativeBlobUtil
+    .config({
+      fileCache: true,
+      path: tempPath,
+    })
+    .fetch('GET', url, {
+      Accept: '*/*',
+    });
+
+  const statusCode = response.info().status;
+
+  console.log('Download Status:', statusCode);
+  console.log('Download Headers:', response.info().headers);
+
+  if (statusCode !== 200) {
+    throw new Error(`Server Error: ${statusCode}`);
+  }
+
+  const fileStats = await ReactNativeBlobUtil.fs.stat(
+    response.path(),
+  );
+
+  if (!fileStats.size || Number(fileStats.size) === 0) {
+    throw new Error('Downloaded file is empty');
+  }
+
+  // Save document in Android Downloads using MediaStore
+  const savedUri =
+    await ReactNativeBlobUtil.MediaCollection.copyToMediaStore(
+      {
+        name: cleanFileName,
+        parentFolder: 'ChalteRho',
+        mimeType: mimeType,
+      },
+      'Download',
+      response.path(),
     );
+
+  if (!savedUri) {
+    throw new Error('Unable to save document in Downloads');
+  }
+
+  // Remove temporary file
+  await ReactNativeBlobUtil.fs
+    .unlink(response.path())
+    .catch(() => {});
+
+  // Notification
+  await notifee.displayNotification({
+    title: 'Download Complete',
+    body: `${cleanFileName} saved in Downloads`,
+    android: {
+      channelId,
+      smallIcon: 'ic_launcher',
+      pressAction: {
+        id: 'default',
+      },
+    },
+  });
+
+  Alert.alert(
+    'Download Complete',
+    `${cleanFileName} successfully saved in Downloads/ChalteRho`,
+  );
+}
+
+
+
+
   } catch (error) {
     console.log('Download Error:', error);
-    Alert.alert('Error', 'Unable to download file.');
+    Alert.alert('Download Failed', error.message || 'Unable to download file.');
   }
 };
+
+
 
   const renderItem = ({item}) => {
     const total =

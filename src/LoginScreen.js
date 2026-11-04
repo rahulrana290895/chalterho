@@ -35,6 +35,7 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -62,6 +63,13 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
+      if (!acceptedTerms) {
+        Alert.alert(
+          t('termsRequired'),
+          t('pleaseAcceptTerms')
+        );
+        return;
+      }
     if (!mobile.trim() || !password) {
       Alert.alert(
         t('error'),
@@ -87,10 +95,8 @@ const LoginScreen = () => {
       const result = await response.json();
 
       if (result.status === 'success') {
-        await AsyncStorage.setItem(
-          'userId',
-          String(result.user.id),
-        );
+        await AsyncStorage.setItem('userId',String(result.user.id),);
+        await AsyncStorage.setItem('userNumber',String(result.user.number),);
 
         navigation.replace('MainTabs');
       } else {
@@ -207,6 +213,39 @@ const LoginScreen = () => {
 
               <Text style={styles.forgotText}>
                 {t('forgotPassword')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.termsContainer}
+              activeOpacity={0.8}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  acceptedTerms && styles.checkboxChecked,
+                ]}
+              >
+                {acceptedTerms && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </View>
+
+              <Text style={styles.termsText}>
+                {t('iAgreeTo')}{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => navigation.navigate('TermsConditionsScreen')}
+                >
+                  {t('termsAndConditions')}
+                </Text>
+                {' '}{t('and')}{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => navigation.navigate('PrivacyPolicyScreen')}
+                >
+                  {t('privacyPolicy')}
+                </Text>
               </Text>
             </TouchableOpacity>
 
@@ -403,5 +442,45 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: 'orangered',
     fontWeight: '600',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+
+  checkbox: {
+    width: 21,
+    height: 21,
+    borderWidth: 1.5,
+    borderColor: 'orangered',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+
+  checkboxChecked: {
+    backgroundColor: 'orangered',
+  },
+
+  checkmark: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#555',
+    lineHeight: 20,
+  },
+
+  termsLink: {
+    color: 'orangered',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });

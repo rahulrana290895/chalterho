@@ -16,7 +16,8 @@ import DatePicker from 'react-native-date-picker';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {BASE_URL} from './config/config';
 import {useTranslation} from 'react-i18next';
-
+import {Dropdown} from 'react-native-element-dropdown';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const InputBox = React.memo(
   ({
     icon,
@@ -56,7 +57,8 @@ const SelectBox = ({
   onValueChange,
   placeholder,
   children,
-}) => (
+}) => 
+  (
   <View style={styles.selectWrapper}>
     <View style={styles.selectIcon}>
       <Ionicons name={icon} size={21} color="#EF5B25" />
@@ -87,36 +89,41 @@ const SelectBox = ({
 
 export default function VehicleTexScreen({navigation}) {
   const {t} = useTranslation();
-
   const [phone, setPhone] = useState('');
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [chassisNumber, setChassisNumber] = useState('');
-
   const [states, setStates] = useState([]);
   const [state, setState] = useState('');
-
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState('');
-
   const [subCategories, setSubCategories] = useState([]);
   const [subCategory, setSubCategory] = useState('');
-
   const [noOfSeats, setNoOfSeats] = useState('');
   const [acType, setAcType] = useState('');
-
   const [durationOptions, setDurationOptions] = useState([]);
   const [duration, setDuration] = useState('');
-
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-
   const [openStart, setOpenStart] = useState(false);
   const [openEnd, setOpenEnd] = useState(false);
+  
 
   useEffect(() => {
     loadStates();
     loadCategories();
+    loadSavedNumber();
   }, []);
+  const loadSavedNumber = async () => {
+  try {
+    const number = await AsyncStorage.getItem('userNumber');
+
+    if (number) {
+      setPhone(number);
+    }
+  } catch (error) {
+    console.log('Phone Load Error:', error);
+  }
+};
 
   useEffect(() => {
     if (
@@ -136,7 +143,6 @@ export default function VehicleTexScreen({navigation}) {
     try {
       const response = await fetch(`${BASE_URL}states.php`);
       const data = await response.json();
-
       setStates(Array.isArray(data) ? data : []);
     } catch (error) {
       console.log('States Error:', error);
@@ -147,7 +153,6 @@ export default function VehicleTexScreen({navigation}) {
     try {
       const response = await fetch(`${BASE_URL}categories.php`);
       const data = await response.json();
-
       setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
       console.log('Categories Error:', error);
@@ -163,7 +168,6 @@ export default function VehicleTexScreen({navigation}) {
     try {
       const formData = new FormData();
       formData.append('category_id', categoryId);
-
       const response = await fetch(
         `${BASE_URL}sub_category_ajax.php`,
         {
@@ -173,7 +177,6 @@ export default function VehicleTexScreen({navigation}) {
       );
 
       const data = await response.json();
-
       setSubCategories(Array.isArray(data) ? data : []);
     } catch (error) {
       console.log('Sub Category Error:', error);
@@ -190,7 +193,6 @@ export default function VehicleTexScreen({navigation}) {
 
     try {
       const formData = new FormData();
-
       formData.append('state', state);
       formData.append('category', String(category));
       formData.append('sub_category', String(subCategory));
@@ -206,11 +208,8 @@ export default function VehicleTexScreen({navigation}) {
           body: formData,
         },
       );
-
       const data = await response.json();
-
       console.log('DURATION API:', data);
-
       if (
         data.status === true &&
         Array.isArray(data.durations) &&
@@ -220,20 +219,16 @@ export default function VehicleTexScreen({navigation}) {
         setDuration('');
         return;
       }
-
       setDurationOptions([]);
       setDuration('');
-
       Alert.alert(
         t('durationNotAvailableTitle'),
         t('durationNotAvailableMessage'),
       );
     } catch (error) {
       console.log('Duration API Error:', error);
-
       setDurationOptions([]);
       setDuration('');
-
       Alert.alert(
         t('error'),
         t('unableToLoadDuration'),
@@ -241,15 +236,9 @@ export default function VehicleTexScreen({navigation}) {
     }
   };
 
-  const showChassis =
-    state &&
-    vehicleNumber.substring(0, 2).toUpperCase() ===
-      state.toUpperCase();
-
+  const showChassis = state && vehicleNumber.substring(0, 2).toUpperCase() === state.toUpperCase();
   const normalizedState = state?.toUpperCase();
-
-  const showSeatAc =
-    (normalizedState === 'UP' || normalizedState === 'UK') &&
+  const showSeatAc = (normalizedState === 'UP' || normalizedState === 'UK') &&
     ['3', '4', '5', '6', '7', '8'].includes(
       String(subCategory),
     );
@@ -262,31 +251,26 @@ export default function VehicleTexScreen({navigation}) {
 
   const calculateEndDate = (selectedDuration, selectedStart) => {
     let date = new Date(selectedStart);
-
     switch (selectedDuration) {
       case 'Day':
         date = new Date(
           date.getTime() + 24 * 60 * 60 * 1000,
         );
         break;
-
       case '3Day':
         date = new Date(
           date.getTime() + 3 * 24 * 60 * 60 * 1000,
         );
         break;
-
       case '5Day':
         date = new Date(
           date.getTime() + 5 * 24 * 60 * 60 * 1000,
         );
         break;
-
       case 'Weekly':
         date.setDate(date.getDate() + 7);
         date = setEndOfDay(date);
         break;
-
       case 'Month':
         date = new Date(
           date.getFullYear(),
@@ -304,7 +288,6 @@ export default function VehicleTexScreen({navigation}) {
         const month = date.getMonth();
 
         let endMonth;
-
         if (month <= 2) {
           endMonth = 2;
         } else if (month <= 5) {
@@ -330,9 +313,7 @@ export default function VehicleTexScreen({navigation}) {
       case 'Half Year': {
         const year = date.getFullYear();
         const month = date.getMonth();
-
         const endMonth = month <= 5 ? 5 : 11;
-
         date = new Date(
           year,
           endMonth + 1,
@@ -347,7 +328,6 @@ export default function VehicleTexScreen({navigation}) {
 
       case 'Year': {
         const year = date.getFullYear();
-
         date = new Date(
           year,
           11,
@@ -359,7 +339,6 @@ export default function VehicleTexScreen({navigation}) {
         );
         break;
       }
-
       default:
         break;
     }
@@ -442,10 +421,9 @@ export default function VehicleTexScreen({navigation}) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode="none"
-          contentContainerStyle={styles.scrollContent}>
-
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag">
           <View style={styles.noticeBox}>
             <View style={styles.noticeIcon}>
               <Ionicons
@@ -527,19 +505,38 @@ export default function VehicleTexScreen({navigation}) {
               <Text style={styles.required}>*</Text>
             </Text>
 
-            <SelectBox
-              icon="map-outline"
-              value={state}
-              onValueChange={setState}
-              placeholder={t('selectState')}>
-              {states.map(item => (
-                <Picker.Item
-                  key={String(item.id)}
-                  label={item.name}
-                  value={item.code}
-                />
-              ))}
-            </SelectBox>
+<View style={styles.selectWrapper}>
+  <View style={styles.selectIcon}>
+    <Ionicons name="map-outline" size={21} color="#EF5B25" />
+  </View>
+
+  <View style={{flex: 1, paddingRight: 10}}>
+<Dropdown
+  style={{height: 48}}
+  placeholderStyle={{color: '#6B7280', fontSize: 13.5}}
+  selectedTextStyle={{color: '#30343B', fontSize: 13.5}}
+  inputSearchStyle={{height: 40, fontSize: 13}}
+  iconStyle={{width: 20, height: 20}}
+  data={states.map(item => ({
+    label: item.name,
+    value: item.code,
+  }))}
+  search
+  searchPlaceholder="Search State..."
+  searchField="label"
+  labelField="label"
+  valueField="value"
+  placeholder={t('selectState')}
+  value={state}
+  onChange={item => setState(item.value)}
+  maxHeight={300}
+  activeColor="#FFF0EA"
+  flatListProps={{
+    keyboardShouldPersistTaps: 'always',
+  }}
+/>
+  </View>
+</View>
 
             {showChassis && (
               <>

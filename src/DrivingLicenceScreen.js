@@ -12,14 +12,20 @@ import {
   ActivityIndicator,
   Linking,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import notifee, {AndroidImportance, } from '@notifee/react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {BASE_URL} from './config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactNativeBlobUtil from 'react-native-blob-util';
+import {useTranslation} from 'react-i18next';
 
 export default function DrivingLicenceScreen({navigation}) {
+  const {t} = useTranslation();
+
   const [activeTab, setActiveTab] = useState('my');
 
   const [dlNumber, setDlNumber] = useState('');
@@ -29,8 +35,7 @@ export default function DrivingLicenceScreen({navigation}) {
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
-const [userId, setUserId] = useState(null);
+  const [userId, setUserId] = useState(null);
 
 useEffect(() => {
   const getUserId = async () => {
@@ -104,21 +109,16 @@ const searchLicence = async () => {
 
   // Saved licence ka PDF/download URL open karein
 
+
 const downloadLicence = async item => {
   try {
-    // PDF URL directly database se aayega
     const pdfUrl = item.pdf_url || item.download_url;
 
-    if (!pdfUrl) {
+    if (!pdfUrl || !/^https?:\/\//i.test(pdfUrl)) {
       Alert.alert(
         'PDF Not Available',
-        'Is driving licence ka PDF URL database mein nahi mila.',
+        'Is driving licence ka valid PDF URL database mein nahi mila.',
       );
-      return;
-    }
-
-    if (!/^https?:\/\//i.test(pdfUrl)) {
-      Alert.alert('Error', 'PDF download URL invalid hai.');
       return;
     }
 
@@ -126,50 +126,85 @@ const downloadLicence = async item => {
       item.license_number || 'DrivingLicence',
     ).replace(/[^a-zA-Z0-9_-]/g, '_');
 
-    const fileName = `DrivingLicence_${safeNumber}_${Date.now()}.pdf`;
+    const fileName = `DL_${safeNumber}_${Date.now()}.pdf`;
 
-    const filePath =
-      `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
+    const channelId = await notifee.createChannel({
+      id: 'dl_downloads',
+      name: 'Driving Licence Downloads',
+      importance: AndroidImportance.HIGH,
+    });
 
-    Alert.alert(
-      'Download Started',
-      'Aapka Driving Licence PDF download ho raha hai.',
-    );
+    await notifee.requestPermission();
 
-    const result = await ReactNativeBlobUtil.config({
-      path: filePath,
-      fileCache: false,
-      addAndroidDownloads: {
-        useDownloadManager: true,
-        notification: true,
-        title: fileName,
-        description: 'Downloading Driving Licence PDF',
-        mime: 'application/pdf',
-        mediaScannable: false,
-        path: filePath,
-      },
+    // Temporary download
+    const tempPath =
+      `${ReactNativeBlobUtil.fs.dirs.CacheDir}/${fileName}`;
+
+    const response = await ReactNativeBlobUtil.config({
+      path: tempPath,
     }).fetch('GET', pdfUrl);
 
-    const status = result.info().status;
-
-    if (status >= 200 && status < 300) {
-      Alert.alert(
-        'Download Successful',
-      );
-    } else {
-      Alert.alert(
-        'Download Failed',
+    if (response.info().status !== 200) {
+      throw new Error(
+        `PDF download failed: ${response.info().status}`,
       );
     }
-  } catch (error) {
-    console.log('Licence PDF download error:', error);
+
+    const stats = await ReactNativeBlobUtil.fs.stat(tempPath);
+
+    if (!stats.size || Number(stats.size) === 0) {
+      throw new Error('Downloaded PDF is empty');
+    }
+
+    // Save PDF in public Download/DL folder
+    const savedUri =
+      await ReactNativeBlobUtil.MediaCollection.copyToMediaStore(
+        {
+          name: fileName,
+          parentFolder: 'DL',
+          mimeType: 'application/pdf',
+        },
+        'Download',
+        tempPath,
+      );
+
+    if (!savedUri) {
+      throw new Error('Unable to save DL PDF');
+    }
+
+    // Remove temporary file
+    await ReactNativeBlobUtil.fs
+      .unlink(tempPath)
+      .catch(() => {});
+
+    // Notification
+    await notifee.displayNotification({
+      title: 'DL Download Complete',
+      body: `${fileName} saved in DL folder`,
+      android: {
+        channelId,
+        smallIcon: 'ic_launcher',
+        pressAction: {
+          id: 'default',
+        },
+      },
+    });
 
     Alert.alert(
-      'Download Error',
-      error?.message || 'PDF download nahi ho payi.',
+      'Download Successful',
+      'Driving Licence PDF saved in Internal Storage/Download/DL',
+    );
+
+  } catch (error) {
+    console.log('DL Download Error:', error);
+
+    Alert.alert(
+      'Download Failed',
+      error.message || 'Unable to download Driving Licence PDF.',
     );
   }
 };
+
 
 
   const renderLicenceCard = item => (
@@ -217,8 +252,43 @@ const downloadLicence = async item => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+<KeyboardAvoidingView
+  style={{flex: 1}}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+
+  <ScrollView
+    style={{flex: 1}}
+    contentContainerStyle={{
+      flexGrow: 1,
+      paddingBottom: 40,
+    }}
+    showsVerticalScrollIndicator={false}
+    keyboardShouldPersistTaps="handled"
+    keyboardDismissMode="on-drag">
+
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+
+        <View style={styles.noticeBox}>
+          <View style={styles.noticeIcon}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={25}
+              color="#D97706"
+            />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.noticeTitle}>
+              {t('importantNotice')}
+            </Text>
+
+            <Text style={styles.noticeText}>
+              {t('carefullyNotice')}
+            </Text>
+          </View>
+        </View>
 
 
       {/* Two tabs */}
@@ -259,7 +329,7 @@ const downloadLicence = async item => {
       </View>
 
       {activeTab === 'my' ? (
-        <ScrollView
+        <View
           contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl
@@ -303,9 +373,9 @@ const downloadLicence = async item => {
               </TouchableOpacity>
             </View>
           )}
-        </ScrollView>
+        </View>
       ) : (
-        <ScrollView
+        <View
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}>
           <View style={styles.searchCard}>
@@ -348,17 +418,29 @@ const downloadLicence = async item => {
             </Text>
             <View style={styles.inputContainer}>
               <Ionicons name="calendar-outline" size={20} color="#173F70" />
-              <TextInput
-                style={styles.input}
-                placeholder="DD-MM-YYYY"
-                placeholderTextColor="#8492A6"
-                value={dob}
-                onChangeText={setDob}
-                keyboardType="numeric"
-                maxLength={10}
-                returnKeyType="done"
-                onSubmitEditing={searchLicence}
-              />
+                <TextInput
+                  style={styles.input}
+                  placeholder="DD-MM-YYYY"
+                  placeholderTextColor="#8492A6"
+                  value={dob}
+                  onChangeText={text => {
+                    let value = text.replace(/\D/g, '');
+
+                    if (value.length > 2) {
+                      value = value.slice(0, 2) + '-' + value.slice(2);
+                    }
+
+                    if (value.length > 5) {
+                      value = value.slice(0, 5) + '-' + value.slice(5, 9);
+                    }
+
+                    setDob(value);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={10}
+                  returnKeyType="done"
+                  onSubmitEditing={searchLicence}
+                />
             </View>
 
             <View style={styles.infoBox}>
@@ -402,24 +484,17 @@ const downloadLicence = async item => {
               </Text>
             </View>
           </View>
-        </ScrollView>
+        </View>
       )}
-    </SafeAreaView>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
+
   );
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#F5F8FC'},
-  header: {
-    height: 56,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    elevation: 2,
-  },
-  backButton: {padding: 5, marginRight: 10},
-  headerTitle: {fontSize: 17, fontWeight: '700', color: '#17365D', flex: 1},
+  container: {flex: 1, backgroundColor: '#F5F8FC',padding:0},
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -632,4 +707,36 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   securityText: {color: '#63758B', fontSize: 11, marginLeft: 6},
+    noticeBox: {
+      backgroundColor: '#FFF8E8',
+      borderWidth: 1,
+      borderColor: '#F5D48A',
+      padding: 11,
+      marginBottom: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    noticeIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: '#FFE9B5',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 10,
+    },
+    noticeContent: {
+      flex: 1,
+    },
+    noticeTitle: {
+      color: '#9A5B00',
+      fontSize: 14,
+      fontWeight: '800',
+      marginBottom: 2,
+    },
+    noticeText: {
+      color: '#805B21',
+      fontSize: 12,
+      lineHeight: 17,
+    },
 });
